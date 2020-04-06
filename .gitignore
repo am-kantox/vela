@@ -1,0 +1,11 @@
+/_build/
+/cover/
+/deps/
+/doc/
+/.fetch
+erl_crash.dump
+*.ez
+kantox_elixir_commons-*.tar
+/.elixir_ls/
+/.dialyzer/*.plt*
+.mix_tasks
