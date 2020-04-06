@@ -51,16 +51,15 @@ defmodule Vela do
           optional(atom()) => any()
         }
 
-  @doc """
-  Hello world.
+  @doc false
+  defmacro __using__(opts) do
+    quote bind_quoted: [opts: opts] do
+      @fields Keyword.keys(opts)
+      @with_initials [{:__errors__, %{}} | Enum.zip(@fields, Stream.cycle([[]]))]
 
-  ## Examples
+      defstruct @with_initials
 
-      iex> Vela.hello()
-      :world
-
-  """
-  def hello do
-    :world
+      use Vela.Access, opts
+    end
   end
 end
