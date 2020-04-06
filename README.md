@@ -1,21 +1,15 @@
 # Vela
 
-**TODO: Add description**
+**The tiny library to ease handling expiring invalidated cached series**
 
 ## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `vela` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:vela, "~> 0.1.0"}
+    {:vela, "~> 0.1"}
   ]
 end
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/vela](https://hexdocs.pm/vela).
-
+## [Documentation](https://hexdocs.pm/vela)

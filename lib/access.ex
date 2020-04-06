@@ -16,14 +16,12 @@ defmodule Vela.Access do
           do: {:ok, value}
 
         @impl Elixir.Access
-        def fetch(%_{}, _), do: :error
+        def pop(%_type{unquote(key) => []} = data, unquote(key)),
+          do: {nil, data}
 
         @impl Elixir.Access
         def pop(%_type{unquote(key) => [value | tail]} = data, unquote(key)),
           do: {value, %{data | unquote(key) => tail}}
-
-        @impl Elixir.Access
-        def pop(%_{} = data, _), do: {nil, data}
 
         @impl Elixir.Access
         def get_and_update(%_type{unquote(key) => values} = data, unquote(key), fun) do
@@ -36,8 +34,14 @@ defmodule Vela.Access do
 
               valid =
                 case validator do
-                  f when is_function(f, 3) -> f.(data, unquote(key), update_value)
-                  m when is_atom(m) -> m.valid?(data, unquote(key), update_value)
+                  f when is_function(f, 3) ->
+                    f.(data, unquote(key), update_value)
+
+                  m when is_atom(m) ->
+                    m.valid?(data, unquote(key), update_value)
+
+                  {m, f} when is_atom(m) and is_atom(f) ->
+                    apply(m, f, [data, unquote(key), update_value])
                 end
 
               updated_data =
@@ -63,10 +67,18 @@ defmodule Vela.Access do
               {get_value, updated_data}
           end
         end
-
-        @impl Elixir.Access
-        def get_and_update(%_{} = data, _, _), do: {nil, data}
       end)
+
+      @impl Elixir.Access
+      def fetch(%_{}, _), do: :error
+
+      @impl Elixir.Access
+      def pop(%_{} = data, key),
+        do: raise(Vela.AccessError, source: __MODULE__, field: key)
+
+      @impl Elixir.Access
+      def get_and_update(%_{} = data, key, _),
+        do: raise(Vela.AccessError, source: __MODULE__, field: key)
     end
   end
 end

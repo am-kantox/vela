@@ -3,5 +3,9 @@ defmodule Vela.Validator do
   The validator behaviour, implementations are used by `Vela`
   to validate new values to be inserted into the state.
   """
+
+  @doc """
+  When implemented, the module might be passed as validator to `use Vela`
+  """
   @callback valid?(vela :: Vela.t(), key :: term(), value :: any()) :: boolean()
 end
