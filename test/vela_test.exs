@@ -15,7 +15,7 @@ defmodule VelaTest do
   test "put_in/3", %{data: data} do
     assert %Test.Vela.Struct{series1: 'DAB'} = put_in(data, [:series1], 68)
 
-    assert %Test.Vela.Struct{__errors__: %{series1: [-68]}, series1: 'ABC', series2: []} =
+    assert %Test.Vela.Struct{__errors__: [series1: -68], series1: 'ABC', series2: []} =
              put_in(data, [:series1], -68)
 
     assert %Test.Vela.Struct{series2: ''} = put_in(data, [:series2], 68)
@@ -50,5 +50,27 @@ defmodule VelaTest do
     assert_raise Vela.AccessError, fn ->
       pop_in(data, [:series3])
     end
+  end
+
+  test "Enumerable implementation", %{data: data} do
+    assert Enum.map(data, fn {serie, list} -> {serie, Enum.map(list, &(&1 + 1))} end) ==
+             [series1: 'BCD', series2: []]
+
+    assert Vela.map(data, fn {serie, list} -> {serie, Enum.map(list, &(&1 + 1))} end) ==
+             %Test.Vela.Struct{
+               series1: 'BCD',
+               series2: []
+             }
+
+    assert Vela.flat_map(data) ==
+             [series1: 65, series1: 66, series1: 67]
+  end
+
+  test "purge/2", %{data: %mod{} = data} do
+    assert mod.purge(data, fn _serie, value -> value != 66 end) ==
+             %Test.Vela.Struct{
+               series1: 'AC',
+               series2: []
+             }
   end
 end

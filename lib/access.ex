@@ -46,19 +46,18 @@ defmodule Vela.Access do
 
               updated_data =
                 if valid do
-                  history_limit = Keyword.get(@opts[unquote(key)], :limit, @history_limit)
-                  values = Enum.take([update_value | values], history_limit)
+                  values =
+                    Enum.take(
+                      [update_value | values],
+                      Keyword.get(@opts[unquote(key)], :limit, @history_limit)
+                    )
 
                   %{data | unquote(key) => values}
                 else
-                  error_limit = Keyword.get(@opts[unquote(key)], :errors, @error_limit)
-
                   errors =
-                    Map.update(
-                      data.__errors__,
-                      unquote(key),
-                      [update_value],
-                      &Enum.take([update_value | &1], error_limit)
+                    Enum.take(
+                      [{unquote(key), update_value} | data.__errors__],
+                      Keyword.get(@opts[unquote(key)], :errors, @error_limit)
                     )
 
                   %{data | __errors__: errors}
