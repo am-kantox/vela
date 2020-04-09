@@ -106,34 +106,49 @@ defmodule Vela do
   end
 
   defmacrop do_implement_enumerable(module) do
-    quote bind_quoted: [module: module] do
+    quote location: :keep, bind_quoted: [module: module] do
       defimpl Enumerable, for: module do
         @moduledoc false
 
         @module module
-        @field_count @module.series()
+        @fields @module.series()
+        @field_count Enum.count(@fields)
 
         def count(%@module{} = vela), do: @field_count
 
-        Enum.each(@module.series(), fn field ->
+        Enum.each(@fields, fn field ->
           def member?(%@module{} = vela, unquote(field)), do: {:ok, true}
         end)
 
         def member?(%@module{} = vela, _), do: {:ok, false}
 
-        def reduce(%@module{} = vela, acc, fun) do
-          vela
-          |> Map.take(@module.series())
-          |> Map.to_list()
-          |> Enumerable.List.reduce(acc, fun)
-        end
+        def reduce(vela, state_acc, fun, inner_acc \\ @fields)
+
+        def reduce(%@module{} = vela, {:halt, acc}, _fun, _inner_acc),
+          do: {:halted, acc}
+
+        def reduce(%@module{} = vela, {:suspend, acc}, fun, inner_acc),
+          do: {:suspended, acc, &reduce(vela, &1, fun, inner_acc)}
+
+        def reduce(%@module{} = vela, {:cont, acc}, _fun, []),
+          do: {:done, acc}
+
+        Enum.each(@fields, fn field ->
+          def reduce(%@module{unquote(field) => list} = vela, {:cont, acc}, fun, [
+                unquote(field) | tail
+              ]),
+              do: reduce(vela, fun.({unquote(field), list}, acc), fun, tail)
+        end)
 
         def slice(%@module{}), do: {:error, @module}
       end
     end
   end
 
-  def implement_enumerable(env, _bytecode) do
-    do_implement_enumerable(env.module)
-  end
+  @doc false
+  def implement_enumerable(%Macro.Env{module: module}, _bytecode),
+    do: do_implement_enumerable(module)
+
+  def map(%_{} = vela, fun),
+    do: struct(vela, Enum.map(vela, fun))
 end

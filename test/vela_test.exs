@@ -53,6 +53,13 @@ defmodule VelaTest do
   end
 
   test "Enumerable implementation", %{data: data} do
-    assert Enum.map(data, & &1) == [series1: 'ABC', series2: []]
+    assert Enum.map(data, fn {serie, list} -> {serie, Enum.map(list, &(&1 + 1))} end) ==
+             [series1: 'BCD', series2: []]
+
+    assert Vela.map(data, fn {serie, list} -> {serie, Enum.map(list, &(&1 + 1))} end) ==
+             %Test.Vela.Struct{
+               series1: 'BCD',
+               series2: []
+             }
   end
 end
