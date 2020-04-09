@@ -72,7 +72,8 @@ defmodule Vela do
     quote bind_quoted: [meta: meta, opts: opts] do
       @after_compile {Vela, :implement_enumerable}
 
-      @fields Keyword.keys(opts)
+      @config opts
+      @fields Keyword.keys(@config)
       @field_count Enum.count(@fields)
 
       fields_index = Enum.with_index(@fields)
@@ -94,13 +95,29 @@ defmodule Vela do
       @doc false
       def series, do: @fields_ordered
 
-      use Vela.Access, opts
+      use Vela.Access, @config
 
       @spec purge(Vela.t(), nil | (Vela.serie(), Vela.value() -> boolean())) :: Vela.t()
       def purge(vela, invalidator \\ nil)
 
+      def purge(%__MODULE__{} = vela, nil) do
+        purged =
+          for {serie, list} <- vela,
+              compare_by = Keyword.get(@config[serie], :compare_by, & &1),
+              invalidator = Keyword.get(@config[serie], :invalidator, fn _, _ -> true end) do
+            {serie, Enum.filter(list, &invalidator.(serie, compare_by.(&1)))}
+          end
+
+        struct(vela, purged)
+      end
+
       def purge(%__MODULE__{} = vela, invalidator) do
-        Enum.reduce(vela, %{})
+        purged =
+          for {serie, list} <- vela do
+            {serie, Enum.filter(list, &invalidator.(serie, &1))}
+          end
+
+        struct(vela, purged)
       end
     end
   end
@@ -114,7 +131,7 @@ defmodule Vela do
         @fields @module.series()
         @field_count Enum.count(@fields)
 
-        def count(%@module{} = vela), do: @field_count
+        def count(%@module{} = vela), do: {:ok, @field_count}
 
         Enum.each(@fields, fn field ->
           def member?(%@module{} = vela, unquote(field)), do: {:ok, true}
@@ -149,6 +166,12 @@ defmodule Vela do
   def implement_enumerable(%Macro.Env{module: module}, _bytecode),
     do: do_implement_enumerable(module)
 
+  @spec map(vela :: t(), ({serie(), value()} -> {serie(), value()})) :: t()
   def map(%_{} = vela, fun),
     do: struct(vela, Enum.map(vela, fun))
+
+  @spec flat_map(vela :: t(), ({serie(), value()} -> {serie(), value()})) :: list()
+  def flat_map(%_{} = vela, fun \\ & &1) do
+    for {serie, list} <- vela, value <- list, do: fun.({serie, value})
+  end
 end

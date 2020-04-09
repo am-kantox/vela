@@ -61,5 +61,16 @@ defmodule VelaTest do
                series1: 'BCD',
                series2: []
              }
+
+    assert Vela.flat_map(data) ==
+             [series1: 65, series1: 66, series1: 67]
+  end
+
+  test "purge/2", %{data: %mod{} = data} do
+    assert mod.purge(data, fn _serie, value -> value != 66 end) ==
+             %Test.Vela.Struct{
+               series1: 'AC',
+               series2: []
+             }
   end
 end
