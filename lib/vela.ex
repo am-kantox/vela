@@ -46,7 +46,7 @@ defmodule Vela do
   @typedoc "Represents the struct created by this behaviour module"
   @type t :: %{
           :__struct__ => atom(),
-          :__errors__ => %{optional(atom) => [any()]},
+          :__errors__ => keyword(),
           :__meta__ => keyword(),
           optional(atom()) => any()
         }
@@ -55,7 +55,7 @@ defmodule Vela do
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do
       @fields Keyword.keys(opts)
-      @with_initials [{:__errors__, %{}} | Enum.zip(@fields, Stream.cycle([[]]))]
+      @with_initials [{:__errors__, []}, {:__meta__, []} | Enum.zip(@fields, Stream.cycle([[]]))]
 
       defstruct @with_initials
 

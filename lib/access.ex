@@ -54,12 +54,7 @@ defmodule Vela.Access do
                   error_limit = Keyword.get(@opts[unquote(key)], :errors, @error_limit)
 
                   errors =
-                    Map.update(
-                      data.__errors__,
-                      unquote(key),
-                      [update_value],
-                      &Enum.take([update_value | &1], error_limit)
-                    )
+                    Enum.take([{unquote(key), update_value} | data.__errors__], error_limit)
 
                   %{data | __errors__: errors}
                 end

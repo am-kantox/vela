@@ -15,7 +15,7 @@ defmodule VelaTest do
   test "put_in/3", %{data: data} do
     assert %Test.Vela.Struct{series1: 'DAB'} = put_in(data, [:series1], 68)
 
-    assert %Test.Vela.Struct{__errors__: %{series1: [-68]}, series1: 'ABC', series2: []} =
+    assert %Test.Vela.Struct{__errors__: [series1: -68], series1: 'ABC', series2: []} =
              put_in(data, [:series1], -68)
 
     assert %Test.Vela.Struct{series2: ''} = put_in(data, [:series2], 68)
