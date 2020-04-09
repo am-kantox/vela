@@ -51,4 +51,8 @@ defmodule VelaTest do
       pop_in(data, [:series3])
     end
   end
+
+  test "Enumerable implementation", %{data: data} do
+    assert Enum.map(data, & &1) == [series1: 'ABC', series2: []]
+  end
 end
