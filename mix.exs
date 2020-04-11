@@ -37,7 +37,7 @@ defmodule Vela.MixProject do
     [
       # dev / test
       {:credo, "~> 1.0", only: [:dev, :ci]},
-      {:dialyxir, "~> 1.0.0", only: [:dev, :test, :ci], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test, :ci], runtime: false},
       {:ex_doc, "~> 0.11", only: :dev}
     ]
   end
@@ -67,7 +67,7 @@ defmodule Vela.MixProject do
       licenses: ["MIT"],
       links: %{
         "GitHub" => "https://github.com/am-kantox/#{@app}",
-        "Docs" => "https://kantox.hexdocs.pm/#{@app}"
+        "Docs" => "https://hexdocs.pm/#{@app}"
       }
     ]
   end
