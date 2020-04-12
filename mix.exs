@@ -2,7 +2,7 @@ defmodule Vela.MixProject do
   use Mix.Project
 
   @app :vela
-  @version "0.2.0"
+  @version "0.2.1"
 
   def project do
     [
@@ -24,12 +24,6 @@ defmodule Vela.MixProject do
         plt_file: {:no_warn, ".dialyzer/dialyzer.plt"},
         ignore_warnings: ".dialyzer/ignore.exs"
       ]
-    ]
-  end
-
-  def application do
-    [
-      extra_applications: [:logger]
     ]
   end
 
