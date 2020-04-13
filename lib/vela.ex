@@ -10,11 +10,9 @@ defmodule Vela do
   `Vela` allows the following configurable parameters per field:
 
   - `limit` — length of the series to keep (default `5`)
-  - `validator` — validation function as either module implementing `Vela.Validator`
-    behaviour, or a local function (default `fn _, _, _ -> true end`)
   - `compare_by` — comparator extraction function to extract the value, to be used for
     comparison, from the underlying terms (by default it returns the whole value)
-  - `invalidator` — the function to be used to invalidate the accumulated values
+  - `validator` — the function to be used to invalidate the accumulated values
   - `errors` — number of errors to keep (default: `5`)
 
   Also, Vela accepts `:mη` keyword parameter for the cases when the consumer needs
@@ -30,13 +28,13 @@ defmodule Vela do
           series2: [limit: 2, validator: Vela.Test]
           series3: [
                 compare_by: &Vela.Test.comparator/1,
-                invalidator: &Vela.Test.invalidator/1
+                validator: &Vela.Test.validator/2
           ]
 
         @behaviour Vela.Validator
 
         @impl Vela.Validator
-        def valid?(%__MODULE__{} = state, key, value) do
+        def valid?(_serie, value) do
           value > 0
         end
 
@@ -44,8 +42,8 @@ defmodule Vela do
         def comparator(%{created_at: created_at}),
           do: created_at
 
-        @spec invalidator(serie :: atom(), value :: t()) :: boolean()
-        def invalidator(_, value),
+        @spec validator(serie :: atom(), value :: t()) :: boolean()
+        def validator(_, value),
           do: is_integer(value) and value > 300
       end
 
@@ -80,7 +78,26 @@ defmodule Vela do
 
       @after_compile {Vela, :implement_enumerable}
 
-      @config opts
+      @config Enum.map(opts, fn {serie, vela} ->
+                vela =
+                  vela
+                  |> Keyword.put_new(:compare_by, &Vela.Stubs.itself/1)
+                  |> Keyword.update(:validator, &Vela.Stubs.validate/2, fn existing ->
+                    case existing do
+                      fun when is_function(fun, 2) ->
+                        fun
+
+                      m when is_atom(m) ->
+                        &m.valid?/2
+
+                      other ->
+                        raise Vela.AccessError, field: :validator, source: &__MODULE__.purge/2
+                    end
+                  end)
+
+                {serie, vela}
+              end)
+
       @fields Keyword.keys(@config)
       @field_count Enum.count(@fields)
 
@@ -106,23 +123,22 @@ defmodule Vela do
       use Vela.Access, @config
 
       @spec purge(Vela.t(), nil | (Vela.serie(), Vela.value() -> boolean())) :: Vela.t()
-      def purge(vela, invalidator \\ nil)
+      def purge(vela, validator \\ nil)
 
       def purge(%__MODULE__{} = vela, nil) do
         purged =
           for {serie, list} <- vela,
-              compare_by = Keyword.get(@config[serie], :compare_by, & &1),
-              invalidator = Keyword.get(@config[serie], :invalidator, fn _, _ -> true end) do
-            {serie, Enum.filter(list, &invalidator.(serie, compare_by.(&1)))}
-          end
+              compare_by = Keyword.get(@config[serie], :compare_by),
+              validator = Keyword.get(@config[serie], :validator),
+              do: {serie, Enum.filter(list, &validator.(serie, compare_by.(&1)))}
 
         struct(vela, purged)
       end
 
-      def purge(%__MODULE__{} = vela, invalidator) do
+      def purge(%__MODULE__{} = vela, validator) do
         purged =
           for {serie, list} <- vela do
-            {serie, Enum.filter(list, &invalidator.(serie, &1))}
+            {serie, Enum.filter(list, &validator.(serie, &1))}
           end
 
         struct(vela, purged)
@@ -181,5 +197,14 @@ defmodule Vela do
   @spec flat_map(vela :: t(), ({serie(), value()} -> {serie(), value()})) :: list()
   def flat_map(%_{} = vela, fun \\ & &1) do
     for {serie, list} <- vela, value <- list, do: fun.({serie, value})
+  end
+
+  defmodule Stubs do
+    @moduledoc false
+    @spec itself(any()) :: any()
+    def itself(any), do: any
+
+    @spec validate(atom(), any()) :: boolean()
+    def validate(_, _), do: true
   end
 end

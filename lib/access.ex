@@ -30,20 +30,9 @@ defmodule Vela.Access do
               pop(data, unquote(key))
 
             {get_value, update_value} ->
-              validator =
-                Keyword.get(unquote(opts)[unquote(key)], :validator, fn _, _, _ -> true end)
-
-              valid =
-                case validator do
-                  f when is_function(f, 3) ->
-                    f.(data, unquote(key), update_value)
-
-                  m when is_atom(m) ->
-                    m.valid?(data, unquote(key), update_value)
-
-                  {m, f} when is_atom(m) and is_atom(f) ->
-                    apply(m, f, [data, unquote(key), update_value])
-                end
+              compare_by = Keyword.get(unquote(opts)[unquote(key)], :compare_by)
+              validator = Keyword.get(unquote(opts)[unquote(key)], :validator)
+              valid = validator.(unquote(key), compare_by.(update_value))
 
               updated_data =
                 if valid do

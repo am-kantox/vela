@@ -7,5 +7,5 @@ defmodule Vela.Validator do
   @doc """
   When implemented, the module might be passed as validator to `use Vela`
   """
-  @callback valid?(vela :: Vela.t(), key :: term(), value :: any()) :: boolean()
+  @callback valid?(key :: term(), value :: any()) :: boolean()
 end
