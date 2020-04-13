@@ -29,8 +29,8 @@ defmodule Vela do
           series1: [limit: 3, errors: 1], # no validation
           series2: [limit: 2, validator: Vela.Test]
           series3: [
-            compare_by: &(&1.created_at),
-            invalidator: &(DateTime.diff(DateTime.utc_now, &1) > 300) # 5 minutes
+                compare_by: &Vela.Test.comparator/1,
+                invalidator: &Vela.Test.invalidator/1
           ]
 
         @behaviour Vela.Validator
@@ -39,6 +39,14 @@ defmodule Vela do
         def valid?(%__MODULE__{} = state, key, value) do
           value > 0
         end
+
+        @spec comparator(%{created_at :: DateTime.t()}) :: DateTime.t()
+        def comparator(%{created_at: created_at}),
+          do: created_at
+
+        @spec invalidator(date :: DateTime.t()) :: boolean()
+        def invalidator(date),
+          do: DateTime.diff(DateTime.utc_now(), date) > 300
       end
 
   In the example above, before any structure update attempt
@@ -67,9 +75,9 @@ defmodule Vela do
 
   @doc false
   defmacro __using__(opts) do
-    {meta, opts} = Keyword.pop(opts, :mη, [])
+    quote bind_quoted: [opts: opts] do
+      {meta, opts} = Keyword.pop(opts, :mη, [])
 
-    quote bind_quoted: [meta: meta, opts: opts] do
       @after_compile {Vela, :implement_enumerable}
 
       @config opts

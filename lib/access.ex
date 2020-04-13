@@ -3,14 +3,14 @@ defmodule Vela.Access do
 
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do
-      @opts opts
-
       @history_limit Application.get_env(:vela, :history_limit, 5)
       @error_limit Application.get_env(:vela, :error_limit, 5)
 
       @behaviour Elixir.Access
 
-      Enum.each(Keyword.keys(@opts), fn key ->
+      Enum.each(Keyword.keys(opts), fn key ->
+        opts = Macro.escape(opts)
+
         @impl Elixir.Access
         def fetch(%_{unquote(key) => [value | _]}, unquote(key)),
           do: {:ok, value}
@@ -30,7 +30,8 @@ defmodule Vela.Access do
               pop(data, unquote(key))
 
             {get_value, update_value} ->
-              validator = Keyword.get(@opts[unquote(key)], :validator, fn _, _, _ -> true end)
+              validator =
+                Keyword.get(unquote(opts)[unquote(key)], :validator, fn _, _, _ -> true end)
 
               valid =
                 case validator do
@@ -49,7 +50,7 @@ defmodule Vela.Access do
                   values =
                     Enum.take(
                       [update_value | values],
-                      Keyword.get(@opts[unquote(key)], :limit, @history_limit)
+                      Keyword.get(unquote(opts)[unquote(key)], :limit, @history_limit)
                     )
 
                   %{data | unquote(key) => values}
@@ -57,7 +58,7 @@ defmodule Vela.Access do
                   errors =
                     Enum.take(
                       [{unquote(key), update_value} | data.__errors__],
-                      Keyword.get(@opts[unquote(key)], :errors, @error_limit)
+                      Keyword.get(unquote(opts)[unquote(key)], :errors, @error_limit)
                     )
 
                   %{data | __errors__: errors}
