@@ -44,9 +44,9 @@ defmodule Vela do
         def comparator(%{created_at: created_at}),
           do: created_at
 
-        @spec invalidator(date :: DateTime.t()) :: boolean()
-        def invalidator(date),
-          do: DateTime.diff(DateTime.utc_now(), date) > 300
+        @spec invalidator(serie :: atom(), value :: t()) :: boolean()
+        def invalidator(_, value),
+          do: is_integer(value) and value > 300
       end
 
   In the example above, before any structure update attempt
