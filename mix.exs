@@ -2,7 +2,7 @@ defmodule Vela.MixProject do
   use Mix.Project
 
   @app :vela
-  @version "0.2.3"
+  @version "0.2.4"
 
   def project do
     [
@@ -26,7 +26,10 @@ defmodule Vela.MixProject do
     ]
   end
 
-  def application, do: []
+  def application,
+    do: [
+      extra_applications: [:logger]
+    ]
 
   defp deps do
     [
