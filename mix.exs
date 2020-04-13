@@ -11,7 +11,6 @@ defmodule Vela.MixProject do
       version: @version,
       elixir: "~> 1.9",
       elixirc_paths: elixirc_paths(Mix.env()),
-      start_permanent: Mix.env() == :prod,
       xref: [exclude: []],
       description: description(),
       package: package(),
@@ -26,6 +25,8 @@ defmodule Vela.MixProject do
       ]
     ]
   end
+
+  def application, do: []
 
   defp deps do
     [
