@@ -85,7 +85,7 @@ defmodule Vela do
               :__errors__ => [Vela.kv()],
               :__meta__ => keyword(),
               # TODO              :__unmatched__ => [Vela.kv()],
-              optional(Vela.serie()) => [Velat.value()]
+              optional(Vela.serie()) => [Vela.value()]
             }
 
       @compile {:inline, series: 0}
