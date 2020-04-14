@@ -74,6 +74,10 @@ defmodule Vela do
   @doc false
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do
+      @moduledoc false
+
+      @compile {:inline, series: 0}
+
       {meta, opts} = Keyword.pop(opts, :mη, [])
 
       @after_compile {Vela, :implement_enumerable}
@@ -128,6 +132,7 @@ defmodule Vela do
       def purge(%__MODULE__{} = vela, nil) do
         purged =
           for {serie, list} <- vela,
+              serie in series(),
               compare_by = Keyword.get(@config[serie], :compare_by),
               validator = Keyword.get(@config[serie], :validator),
               do: {serie, Enum.filter(list, &validator.(serie, compare_by.(&1)))}
