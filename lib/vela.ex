@@ -142,9 +142,9 @@ defmodule Vela do
 
       def purge(%__MODULE__{} = vela, validator) do
         purged =
-          for {serie, list} <- vela do
-            {serie, Enum.filter(list, &validator.(serie, &1))}
-          end
+          for {serie, list} <- vela,
+              serie in series(),
+              do: {serie, Enum.filter(list, &validator.(serie, &1))}
 
         struct(vela, purged)
       end
