@@ -73,4 +73,19 @@ defmodule VelaTest do
                series2: []
              }
   end
+
+  test "equal?/2", %{data: %mod{} = data} do
+    assert mod.equal?(data, %Test.Vela.Struct{series1: [65, 66, 67], series2: []})
+    refute mod.equal?(data, %Test.Vela.Struct{series1: [65, 66], series2: []})
+    refute mod.equal?(data, %Test.Vela.Struct{series1: [], series2: [1]})
+    refute mod.equal?(data, %Test.Vela.Struct{series1: [65, 66, 67], series2: [1]})
+
+    dt1 = DateTime.utc_now()
+    dt2 = DateTime.add(dt1, 0)
+    dt3 = DateTime.add(dt1, 1)
+
+    assert mod.equal?(%Test.Vela.Struct{series1: [dt1]}, %Test.Vela.Struct{series1: [dt1]})
+    assert mod.equal?(%Test.Vela.Struct{series1: [dt1]}, %Test.Vela.Struct{series1: [dt2]})
+    refute mod.equal?(%Test.Vela.Struct{series1: [dt1]}, %Test.Vela.Struct{series1: [dt3]})
+  end
 end

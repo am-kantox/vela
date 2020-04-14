@@ -63,11 +63,15 @@ defmodule Vela do
   @typedoc "Represents a value in the Vela structure"
   @type value :: any()
 
+  @typedoc "Represents a key-value pair in errors and unmatched"
+  @type kv :: {serie(), value()}
+
   @typedoc "Represents the struct created by this behaviour module"
   @type t :: %{
           :__struct__ => atom(),
-          :__errors__ => keyword(),
+          :__errors__ => [kv()],
           :__meta__ => keyword(),
+          # TODO          :__unmatched__ => [kv()],
           optional(serie()) => [value()]
         }
 
@@ -75,6 +79,14 @@ defmodule Vela do
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do
       @moduledoc false
+
+      @type t :: %{
+              :__struct__ => __MODULE__,
+              :__errors__ => [Vela.kv()],
+              :__meta__ => keyword(),
+              # TODO              :__unmatched__ => [Vela.kv()],
+              optional(Vela.serie()) => [Velat.value()]
+            }
 
       @compile {:inline, series: 0}
 
@@ -114,6 +126,7 @@ defmodule Vela do
 
       @with_initials [
         {:__errors__, []},
+        # TODO        {:__unmatched__, []},
         {:__meta__, meta}
         | Enum.zip(@fields_ordered, Stream.cycle([[]]))
       ]
@@ -126,7 +139,7 @@ defmodule Vela do
 
       use Vela.Access, @config
 
-      @spec purge(Vela.t(), nil | (Vela.serie(), Vela.value() -> boolean())) :: Vela.t()
+      @spec purge(t(), nil | (Vela.serie(), Vela.value() -> boolean())) :: t()
       def purge(vela, validator \\ nil)
 
       def purge(%__MODULE__{} = vela, nil) do
@@ -147,6 +160,35 @@ defmodule Vela do
               do: {serie, Enum.filter(list, &validator.(serie, &1))}
 
         struct(vela, purged)
+      end
+
+      @spec equal?(v1 :: t(), v2 :: t()) :: boolean()
+      def equal?(%__MODULE__{} = v1, %__MODULE__{} = v2) do
+        [v1, v2]
+        |> Enum.map(&Vela.flat_map/1)
+        |> Enum.reduce(&do_equal?/2)
+      end
+
+      @spec do_equal?(kw1 :: keyword(), kw2 :: keyword()) :: boolean()
+      defp do_equal?(kw1, kw2) when length(kw1) != length(kw2), do: false
+
+      defp do_equal?(kw1, kw2) do
+        [kw1, kw2]
+        |> Enum.zip()
+        |> Enum.reduce_while(true, fn
+          {{serie, %mod{} = value1}, {serie, %mod{} = value2}}, true ->
+            if (mod.__info__(:functions)[:equal?] == 2 and mod.equal?(value1, value2)) or
+                 (mod.__info__(:functions)[:compare] == 2 and mod.compare(value1, value2) == :eq) or
+                 value1 == value2,
+               do: {:cont, true},
+               else: {:halt, false}
+
+          {{serie, value1}, {serie, value2}}, true ->
+            if value1 == value2, do: {:cont, true}, else: {:halt, false}
+
+          _, true ->
+            {:halt, false}
+        end)
       end
     end
   end
@@ -200,9 +242,14 @@ defmodule Vela do
     do: struct(vela, Enum.map(vela, fun))
 
   @spec flat_map(vela :: t(), ({serie(), value()} -> {serie(), value()})) :: list()
-  def flat_map(%_{} = vela, fun \\ & &1) do
-    for {serie, list} <- vela, value <- list, do: fun.({serie, value})
-  end
+  def flat_map(%mod{} = vela, fun \\ & &1),
+    do:
+      for(
+        {serie, list} <- vela,
+        serie in mod.series(),
+        value <- list,
+        do: fun.({serie, value})
+      )
 
   defmodule Stubs do
     @moduledoc false
