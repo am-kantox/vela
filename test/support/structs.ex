@@ -1,13 +1,16 @@
 defmodule Test.Vela.Struct do
   @moduledoc false
 
+  alias Vela.Validator
+  alias Test.Vela.Struct, as: Me
+
   use Vela,
-    series1: [limit: 3, validator: Test.Vela.Struct, errors: 1],
-    series2: [limit: 2, validator: &Test.Vela.Struct.valid_2?/2]
+    series1: [limit: 3, validator: Me, errors: 1],
+    series2: [limit: 2, validator: &Me.valid_2?/2]
 
-  @behaviour Vela.Validator
+  @behaviour Validator
 
-  @impl Vela.Validator
+  @impl Validator
   def valid?(_key, value) do
     value > 0
   end
