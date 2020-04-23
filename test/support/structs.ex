@@ -1,8 +1,8 @@
 defmodule Test.Vela.Struct do
   @moduledoc false
 
-  alias Vela.Validator
   alias Test.Vela.Struct, as: Me
+  alias Vela.Validator
 
   use Vela,
     series1: [limit: 3, validator: Me, errors: 1],
