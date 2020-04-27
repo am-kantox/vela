@@ -3,13 +3,13 @@ defmodule VelaTest do
   doctest Vela
 
   setup_all do
-    [data: %Test.Vela.Struct{series1: [65, 66, 67], series2: []}]
+    [data: %Test.Vela.Struct{series1: [65, 66, 67], series2: [], series3: [43, 42]}]
   end
 
   test "get_in/2", %{data: data} do
     assert get_in(data, [:series1]) == 65
     assert get_in(data, [:series2]) == nil
-    assert get_in(data, [:series3]) == nil
+    assert get_in(data, [:series0]) == nil
   end
 
   test "put_in/3", %{data: data} do
@@ -29,7 +29,7 @@ defmodule VelaTest do
              |> put_in([:series2], -4)
 
     assert_raise Vela.AccessError, fn ->
-      put_in(data, [:series3], 68)
+      put_in(data, [:series0], 68)
     end
   end
 
@@ -48,37 +48,49 @@ defmodule VelaTest do
              )
 
     assert_raise Vela.AccessError, fn ->
-      pop_in(data, [:series3])
+      pop_in(data, [:series0])
     end
   end
 
   test "Enumerable implementation", %{data: data} do
     assert Enum.map(data, fn {serie, list} -> {serie, Enum.map(list, &(&1 + 1))} end) ==
-             [series1: 'BCD', series2: []]
+             [series1: 'BCD', series2: [], series3: ',+']
 
     assert Vela.map(data, fn {serie, list} -> {serie, Enum.map(list, &(&1 + 1))} end) ==
              %Test.Vela.Struct{
                series1: 'BCD',
-               series2: []
+               series2: [],
+               series3: ',+'
              }
 
     assert Vela.flat_map(data) ==
-             [series1: 65, series1: 66, series1: 67]
+             [series1: 65, series1: 66, series1: 67, series3: 43, series3: 42]
   end
 
   test "purge/2", %{data: %mod{} = data} do
     assert mod.purge(data, fn _serie, value -> value != 66 end) ==
              %Test.Vela.Struct{
                series1: 'AC',
-               series2: []
+               series2: [],
+               series3: '+*'
              }
   end
 
   test "equal?/2", %{data: %mod{} = data} do
-    assert mod.equal?(data, %Test.Vela.Struct{series1: [65, 66, 67], series2: []})
-    refute mod.equal?(data, %Test.Vela.Struct{series1: [65, 66], series2: []})
-    refute mod.equal?(data, %Test.Vela.Struct{series1: [], series2: [1]})
-    refute mod.equal?(data, %Test.Vela.Struct{series1: [65, 66, 67], series2: [1]})
+    assert mod.equal?(data, %Test.Vela.Struct{
+             series1: [65, 66, 67],
+             series2: [],
+             series3: [43, 42]
+           })
+
+    refute mod.equal?(data, %Test.Vela.Struct{series1: [65, 66], series2: [], series3: [43, 42]})
+    refute mod.equal?(data, %Test.Vela.Struct{series1: [], series2: [1], series3: [43, 42]})
+
+    refute mod.equal?(data, %Test.Vela.Struct{
+             series1: [65, 66, 67],
+             series2: [1],
+             series3: [43, 42]
+           })
 
     dt1 = DateTime.utc_now()
     dt2 = DateTime.add(dt1, 0)
@@ -87,5 +99,10 @@ defmodule VelaTest do
     assert mod.equal?(%Test.Vela.Struct{series1: [dt1]}, %Test.Vela.Struct{series1: [dt1]})
     assert mod.equal?(%Test.Vela.Struct{series1: [dt1]}, %Test.Vela.Struct{series1: [dt2]})
     refute mod.equal?(%Test.Vela.Struct{series1: [dt1]}, %Test.Vela.Struct{series1: [dt3]})
+  end
+
+  test "sort/2", %{data: %_mod{} = data} do
+    assert %Test.Vela.Struct{series3: [42, 43]} = put_in(data, [:series3], 100)
+    assert %Test.Vela.Struct{series3: [10, 42]} = put_in(data, [:series3], 10)
   end
 end

@@ -32,6 +32,7 @@ defmodule Vela.Access do
               pop(data, unquote(key))
 
             {get_value, update_value} ->
+              sorter = Keyword.get(unquote(opts)[unquote(key)], :sorter)
               compare_by = Keyword.get(unquote(opts)[unquote(key)], :compare_by)
               validator = Keyword.get(unquote(opts)[unquote(key)], :validator)
               valid = validator.(unquote(key), compare_by.(update_value))
@@ -40,7 +41,7 @@ defmodule Vela.Access do
                 if valid do
                   values =
                     Enum.take(
-                      [update_value | values],
+                      Enum.sort([update_value | values], sorter),
                       Keyword.get(unquote(opts)[unquote(key)], :limit, @history_limit)
                     )
 

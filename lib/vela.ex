@@ -13,6 +13,8 @@ defmodule Vela do
   - `compare_by` — comparator extraction function to extract the value, to be used for
     comparison, from the underlying terms (by default it returns the whole value)
   - `validator` — the function to be used to invalidate the accumulated values
+  - `sorter` — the function to be used to sort values within one serie, if
+    none is given, it sorts in the natural order, FIFO, newest is the one to `pop`
   - `errors` — number of errors to keep (default: `5`)
 
   Also, Vela accepts `:mη` keyword parameter for the cases when the consumer needs
@@ -97,6 +99,7 @@ defmodule Vela do
       @config Enum.map(opts, fn {serie, vela} ->
                 vela =
                   vela
+                  |> Keyword.put_new(:sorter, &Vela.Stubs.sort/2)
                   |> Keyword.put_new(:compare_by, &Vela.Stubs.itself/1)
                   |> Keyword.update(:validator, &Vela.Stubs.validate/2, fn existing ->
                     case existing do
@@ -258,5 +261,8 @@ defmodule Vela do
 
     @spec validate(atom(), any()) :: boolean()
     def validate(_, _), do: true
+
+    @spec sort(any(), any()) :: boolean()
+    def sort(_, _), do: true
   end
 end
