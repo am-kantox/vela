@@ -105,4 +105,8 @@ defmodule VelaTest do
     assert %Test.Vela.Struct{series3: [42, 43]} = put_in(data, [:series3], 100)
     assert %Test.Vela.Struct{series3: [10, 42]} = put_in(data, [:series3], 10)
   end
+
+  test "slice/1", %{data: %_mod{} = data} do
+    assert [series1: 65, series3: 43] == Test.Vela.Struct.slice(data)
+  end
 end

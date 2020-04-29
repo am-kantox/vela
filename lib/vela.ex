@@ -142,6 +142,10 @@ defmodule Vela do
 
       use Vela.Access, @config
 
+      @spec slice(t()) :: [{Vela.serie(), Vela.value()}]
+      def slice(vela),
+        do: for({serie, [h | _]} <- vela, do: {serie, h})
+
       @spec purge(t(), nil | (Vela.serie(), Vela.value() -> boolean())) :: t()
       def purge(vela, validator \\ nil)
 
