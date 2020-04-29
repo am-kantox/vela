@@ -142,7 +142,7 @@ defmodule Vela do
 
       use Vela.Access, @config
 
-      @spec slice(t()) :: [{Vela.serie(), Vela.value()}]
+      @spec slice(t()) :: [Vela.kv()]
       def slice(vela),
         do: for({serie, [h | _]} <- vela, do: {serie, h})
 
