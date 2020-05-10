@@ -60,9 +60,9 @@ defmodule Vela.MixProject do
   defp package do
     [
       name: @app,
-      files: ~w|stuff lib mix.exs README.md|,
+      files: ~w|stuff lib mix.exs README.md LICENSE|,
       maintainers: ["Aleksei Matiushkin"],
-      licenses: ["MIT"],
+      licenses: ["Kantox LTD"],
       links: %{
         "GitHub" => "https://github.com/am-kantox/#{@app}",
         "Docs" => "https://hexdocs.pm/#{@app}"
