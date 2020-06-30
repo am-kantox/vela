@@ -82,7 +82,7 @@ defmodule Vela.MixProject do
       logo: "stuff/#{@app}-48x48.png",
       source_url: "https://github.com/am-kantox/#{@app}",
       assets: "stuff/images",
-      extras: ~w[README.md lifetime.md],
+      extras: ~w[README.md stuff/lifetime.md],
       groups_for_modules: []
     ]
   end
