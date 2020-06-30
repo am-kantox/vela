@@ -77,6 +77,8 @@ defmodule Vela do
           optional(serie()) => [value()]
         }
 
+  use Boundary, exports: [Access, AccessError, Stubs]
+
   @doc false
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do

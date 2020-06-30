@@ -1,4 +1,4 @@
-# Vela
+# ![Vela](stuff/vela-48x48.png?raw=true) Vela
 
 **The tiny library to ease handling expiring invalidated cached series**
 
@@ -7,7 +7,7 @@
 ```elixir
 def deps do
   [
-    {:vela, "~> 0.1"}
+    {:vela, "~> 0.5"}
   ]
 end
 ```

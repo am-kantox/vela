@@ -10,6 +10,7 @@ defmodule Vela.MixProject do
       name: "Vela",
       version: @version,
       elixir: "~> 1.9",
+      compilers: compilers(Mix.env()),
       elixirc_paths: elixirc_paths(Mix.env()),
       xref: [exclude: []],
       description: description(),
@@ -21,6 +22,8 @@ defmodule Vela.MixProject do
       releases: [],
       dialyzer: [
         plt_file: {:no_warn, ".dialyzer/dialyzer.plt"},
+        plt_add_deps: :transitive,
+        list_unused_filters: true,
         ignore_warnings: ".dialyzer/ignore.exs"
       ]
     ]
@@ -33,6 +36,7 @@ defmodule Vela.MixProject do
 
   defp deps do
     [
+      {:boundary, "~> 0.4", runtime: false},
       # dev / test
       {:credo, "~> 1.0", only: [:dev, :ci]},
       {:dialyxir, "~> 1.0", only: [:dev, :test, :ci], runtime: false},
@@ -78,10 +82,13 @@ defmodule Vela.MixProject do
       logo: "stuff/#{@app}-48x48.png",
       source_url: "https://github.com/am-kantox/#{@app}",
       assets: "stuff/images",
-      extras: ["README.md"],
+      extras: ~w[README.md lifetime.md],
       groups_for_modules: []
     ]
   end
+
+  defp compilers(:dev), do: [:boundary | Mix.compilers()]
+  defp compilers(_), do: Mix.compilers()
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(:ci), do: ["lib", "test/support"]
