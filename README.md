@@ -1,4 +1,4 @@
-# ![Vela](stuff/vela-48x48.png?raw=true) Vela
+# ![Vela](https://raw.githubusercontent.com/am-kantox/vela/master/stuff/vela-48x48.png) Vela
 
 **The tiny library to ease handling expiring invalidated cached series**
 

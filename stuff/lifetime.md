@@ -32,27 +32,27 @@ end
 Now we can fill the struct with values.
 
 ```elixir
-iex|1 ▶ s = %Series{}
+iex|1> s = %Series{}
 #⇒ %Series{__errors__: [], dates: [], integers: []}
-iex|2 ▶ put_in s, [:integers], 42
+iex|2> put_in s, [:integers], 42
 #⇒ %Series{__errors__: [], dates: [], integers: '*'}
-iex|3 ▶ put_in s, [:integers], "42"
+iex|3> put_in s, [:integers], "42"
 #⇒ %Series{__errors__: [integers: "42"], dates: [], integers: []}
-iex|4 ▶ put_in s, [:dates], Date.utc_today
+iex|4> put_in s, [:dates], Date.utc_today
 #⇒ %Series{__errors__: [], dates: [~D[2020-06-30]], integers: []}
-iex|5 ▶ put_in s, [:dates], "42"   
+iex|5> put_in s, [:dates], "42"   
 #⇒ %Series{__errors__: [dates: "42"], dates: [], integers: []}
 ```
 
 Let’s see how sorting works.
 
 ```elixir
-iex|6 ▶ s
-...|6 ▶ |> put_in([:integers], 10)
-...|6 ▶ |> put_in([:integers], 20)
-...|6 ▶ |> put_in([:integers], 30)
-...|6 ▶ |> put_in([:integers], 40)
-...|6 ▶ |> put_in([:integers], 0)
+iex|6> s
+...|6> |> put_in([:integers], 10)
+...|6> |> put_in([:integers], 20)
+...|6> |> put_in([:integers], 30)
+...|6> |> put_in([:integers], 40)
+...|6> |> put_in([:integers], 0)
 %Series{__errors__: [], dates: [], integers: [40, 30, 20]}
 ```
 
@@ -63,13 +63,13 @@ We instructed the serie to keep at most three values, sorted descending.
 The get to the most “relevant” values (heads of series,) one might use `slice/1`. It returns the keyword with all the actual values.
 
 ```elixir
-iex|7 ▶ Series.slice s
+iex|7> Series.slice s
 #⇒ [integers: 40]
 ```
 
 To get to the head of each serie, one might use `Access` as shown below.
 
 ```elixir
-iex|8 ▶ get_in s, [:integers]
+iex|8> get_in s, [:integers]
 #⇒ 40
 ```
