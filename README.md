@@ -7,9 +7,13 @@
 ```elixir
 def deps do
   [
-    {:vela, "~> 0.5"}
+    {:vela, "~> 0.6"}
   ]
 end
 ```
+
+## Changelog
+
+- **`0.6.0`** — `Vela.δ/1` / `Vela.delta/1` returning a keyword `[{serie, {min, max}}]`
 
 ## [Documentation](https://hexdocs.pm/vela)
