@@ -35,7 +35,7 @@ defmodule Vela.Access do
               sorter = Keyword.get(unquote(opts)[unquote(key)], :sorter)
               compare_by = Keyword.get(unquote(opts)[unquote(key)], :compare_by)
               validator = Keyword.get(unquote(opts)[unquote(key)], :validator)
-              valid = validator.(unquote(key), compare_by.(update_value))
+              valid = Vela.validator!(unquote(key), validator, compare_by).(update_value)
 
               updated_data =
                 if valid do

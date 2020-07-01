@@ -9,10 +9,13 @@ defmodule Vela do
 
   `Vela` allows the following configurable parameters per field:
 
-  - `limit` — length of the series to keep (default `5`)
+  - `limit` — length of the series to keep (default: `5`)
   - `compare_by` — comparator extraction function to extract the value, to be used for
-    comparison, from the underlying terms (by default it returns the whole value)
-  - `validator` — the function to be used to invalidate the accumulated values
+    comparison, from the underlying terms (default: `& &1`)
+  - `comparator` — the function that accepts a series name and two values and returns
+    the greater one to be used in `Vela.δ/1` (default: `&</2`)
+  - `validator` — the function to be used to invalidate the accumulated values (default:
+    `fn _ -> true end`)
   - `sorter` — the function to be used to sort values within one serie, if
     none is given, it sorts in the natural order, FIFO, newest is the one to `pop`
   - `errors` — number of errors to keep (default: `5`)
@@ -36,21 +39,19 @@ defmodule Vela do
         @behaviour Vela.Validator
 
         @impl Vela.Validator
-        def valid?(_serie, value) do
-          value > 0
-        end
+        def valid?(_serie, value), do: value > 0
 
         @spec comparator(%{created_at :: DateTime.t()}) :: DateTime.t()
         def comparator(%{created_at: created_at}),
           do: created_at
 
-        @spec validator(serie :: atom(), value :: t()) :: boolean()
-        def validator(_, value),
+        @spec validator(value :: t()) :: boolean()
+        def validator(value),
           do: is_integer(value) and value > 300
       end
 
   In the example above, before any structure update attempt
-  (via `Access`,) this `valid?/3` function would be called.
+  (via `Access`,) this `valid?/2` function would be called.
 
   If it returns `true`, the value gets inserted / updated, and
   the series behind is truncated if needed. It it returns `false`,
@@ -81,7 +82,7 @@ defmodule Vela do
 
   @doc false
   defmacro __using__(opts) do
-    quote bind_quoted: [opts: opts] do
+    quote generated: true, location: :keep, bind_quoted: [opts: opts] do
       @moduledoc false
 
       @type t :: %{
@@ -103,9 +104,10 @@ defmodule Vela do
                   vela
                   |> Keyword.put_new(:sorter, &Vela.Stubs.sort/2)
                   |> Keyword.put_new(:compare_by, &Vela.Stubs.itself/1)
-                  |> Keyword.update(:validator, &Vela.Stubs.validate/2, fn existing ->
+                  |> Keyword.put_new(:comparator, &Vela.Stubs.compare/2)
+                  |> Keyword.update(:validator, &Vela.Stubs.validate/1, fn existing ->
                     case existing do
-                      fun when is_function(fun, 2) ->
+                      fun when is_function(fun, 1) or is_function(fun, 2) ->
                         fun
 
                       m when is_atom(m) ->
@@ -157,7 +159,7 @@ defmodule Vela do
               serie in series(),
               compare_by = Keyword.get(@config[serie], :compare_by),
               validator = Keyword.get(@config[serie], :validator),
-              do: {serie, Enum.filter(list, &validator.(serie, compare_by.(&1)))}
+              do: {serie, Enum.filter(list, Vela.validator!(serie, validator, compare_by))}
 
         struct(vela, purged)
       end
@@ -170,6 +172,51 @@ defmodule Vela do
 
         struct(vela, purged)
       end
+
+      @spec delta(t(), nil | (Vela.serie(), Vela.value(), Vela.value() -> boolean())) :: t()
+      def delta(vela, comparator \\ nil)
+
+      def delta(%__MODULE__{} = vela, nil) do
+        for {serie, list} <- vela,
+            serie in series(),
+            compare_by = Keyword.get(@config[serie], :compare_by),
+            comparator = Keyword.get(@config[serie], :comparator) do
+          min_max =
+            Enum.reduce(list, {nil, nil}, fn
+              v, {nil, nil} ->
+                {v, v}
+
+              v, {min, max} ->
+                {
+                  if(comparator.(compare_by.(v), compare_by.(min)), do: v, else: min),
+                  if(comparator.(compare_by.(max), compare_by.(v)), do: v, else: max)
+                }
+            end)
+
+          {serie, min_max}
+        end
+      end
+
+      def delta(%__MODULE__{} = vela, comparator) do
+        for {serie, list} <- vela, serie in series() do
+          min_max =
+            Enum.reduce(list, {nil, nil}, fn
+              v, {nil, nil} ->
+                {v, v}
+
+              v, {min, max} ->
+                {
+                  if(comparator.(serie, v, min), do: v, else: min),
+                  if(comparator.(serie, max, v), do: v, else: max)
+                }
+            end)
+
+          {serie, min_max}
+        end
+      end
+
+      @spec δ(t(), nil | (Vela.serie(), Vela.value(), Vela.value() -> boolean())) :: t()
+      def δ(vela, comparator \\ nil), do: delta(vela, comparator)
 
       @spec equal?(v1 :: t(), v2 :: t()) :: boolean()
       def equal?(%__MODULE__{} = v1, %__MODULE__{} = v2) do
@@ -260,15 +307,31 @@ defmodule Vela do
         do: fun.({serie, value})
       )
 
+  def validator!(serie, validator, compare_by) do
+    case validator do
+      f when is_function(f, 1) ->
+        &validator.(compare_by.(&1))
+
+      f when is_function(f, 2) ->
+        &validator.(serie, compare_by.(&1))
+
+      _other ->
+        raise Vela.AccessError, field: :validator, source: &__MODULE__.validator!/3
+    end
+  end
+
   defmodule Stubs do
     @moduledoc false
-    @spec itself(any()) :: any()
-    def itself(any), do: any
+    @spec itself(Vela.value()) :: any()
+    def itself(v), do: v
 
-    @spec validate(atom(), any()) :: boolean()
-    def validate(_, _), do: true
+    @spec validate(Vela.value()) :: boolean()
+    def validate(_value), do: true
 
-    @spec sort(any(), any()) :: boolean()
-    def sort(_, _), do: true
+    @spec compare(Vela.value(), Vela.value()) :: boolean()
+    def compare(v1, v2), do: v1 < v2
+
+    @spec sort(Vela.value(), Vela.value()) :: boolean()
+    def sort(_v1, _v2), do: true
   end
 end
