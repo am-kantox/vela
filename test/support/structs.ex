@@ -29,8 +29,8 @@ defmodule Test.Vela.Struct2Checkers do
   def good_integer(int) when is_integer(int), do: true
   def good_integer(_), do: false
 
-  def good_date(%Date{}), do: true
-  def good_date(_), do: false
+  def good_date(:dates, %Date{}), do: true
+  def good_date(_, _), do: false
 
   def compare_dates(%Date{} = d1, %Date{} = d2),
     do: Date.compare(d1, d2) == :lt
@@ -47,7 +47,7 @@ defmodule Test.Vela.Struct2 do
     integers: [limit: 3, validator: &good_integer/1, sorter: &</2],
     dates: [
       limit: 3,
-      validator: &good_date/1,
+      validator: &good_date/2,
       sorter: &compare_dates/2,
       comparator: &compare_dates/2
     ]
