@@ -173,7 +173,8 @@ defmodule Vela do
         struct(vela, purged)
       end
 
-      @spec delta(t(), nil | (Vela.serie(), Vela.value(), Vela.value() -> boolean())) :: t()
+      @spec delta(t(), nil | (Vela.serie(), Vela.value(), Vela.value() -> boolean())) ::
+              [{atom(), {Vela.value(), Vela.value()}}]
       def delta(vela, comparator \\ nil)
 
       def delta(%__MODULE__{} = vela, nil) do
@@ -215,7 +216,8 @@ defmodule Vela do
         end
       end
 
-      @spec δ(t(), nil | (Vela.serie(), Vela.value(), Vela.value() -> boolean())) :: t()
+      @spec δ(t(), nil | (Vela.serie(), Vela.value(), Vela.value() -> boolean())) ::
+              [{atom(), {Vela.value(), Vela.value()}}]
       def δ(vela, comparator \\ nil), do: delta(vela, comparator)
 
       @spec equal?(v1 :: t(), v2 :: t()) :: boolean()
