@@ -44,7 +44,7 @@ defmodule Test.Vela.Struct2 do
   import Test.Vela.Struct2Checkers
 
   use Vela,
-    integers: [limit: 3, validator: &good_integer/1, sorter: &</2],
+    integers: [limit: 3, validator: &good_integer/1, sorter: &</2, threshold: 0.5],
     dates: [
       limit: 3,
       validator: &good_date/2,
