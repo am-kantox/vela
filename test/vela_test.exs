@@ -121,4 +121,14 @@ defmodule VelaTest do
 
     assert mod.δ(data) == [series1: {65, 67}, series2: {nil, nil}, series3: {42, 43}]
   end
+
+  test "threshold" do
+    vela = %Test.Vela.Struct2{integers: [1, 3]}
+
+    assert %Test.Vela.Struct2{integers: [1, 3, 4]} = put_in(vela, [:integers], 4)
+    assert %Test.Vela.Struct2{integers: [0, 1, 3]} = put_in(vela, [:integers], 0)
+
+    assert %Test.Vela.Struct2{__errors__: [integers: 5], integers: [1, 3]} =
+             put_in(vela, [:integers], 5)
+  end
 end

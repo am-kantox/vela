@@ -14,6 +14,8 @@ defmodule Vela do
     comparison, from the underlying terms (default: `& &1`)
   - `comparator` — the function that accepts a series name and two values and returns
     the greater one to be used in `Vela.δ/1` (default: `&</2`)
+  - `threshold` — if specified, the inserted value is checked to fit in `δ ± threshold`;
+    whether it does not, it goes to `errors` (`float() | nil`, default: `nil`)
   - `validator` — the function to be used to invalidate the accumulated values (default:
     `fn _ -> true end`)
   - `sorter` — the function to be used to sort values within one serie, if
@@ -105,16 +107,12 @@ defmodule Vela do
                   |> Keyword.put_new(:sorter, &Vela.Stubs.sort/2)
                   |> Keyword.put_new(:compare_by, &Vela.Stubs.itself/1)
                   |> Keyword.put_new(:comparator, &Vela.Stubs.compare/2)
+                  |> Keyword.put_new(:threshold, nil)
                   |> Keyword.update(:validator, &Vela.Stubs.validate/1, fn existing ->
                     case existing do
-                      fun when is_function(fun, 1) or is_function(fun, 2) ->
-                        fun
-
-                      m when is_atom(m) ->
-                        &m.valid?/2
-
-                      other ->
-                        raise Vela.AccessError, field: :validator, source: &__MODULE__.purge/2
+                      fun when is_function(fun, 1) or is_function(fun, 2) -> fun
+                      m when is_atom(m) -> &m.valid?/2
+                      other -> raise Vela.AccessError, field: :validator
                     end
                   end)
 
@@ -140,9 +138,17 @@ defmodule Vela do
 
       defstruct @with_initials
 
-      @spec series :: [Vela.serie()]
       @doc false
+      @spec series :: [Vela.serie()]
       def series, do: @fields_ordered
+
+      @doc false
+      @spec config :: keyword()
+      def config, do: @config
+
+      @doc false
+      @spec config(Vela.serie()) :: any()
+      def config(serie), do: @config[serie]
 
       use Vela.Access, @config
 
@@ -157,9 +163,7 @@ defmodule Vela do
         purged =
           for {serie, list} <- vela,
               serie in series(),
-              compare_by = Keyword.get(@config[serie], :compare_by),
-              validator = Keyword.get(@config[serie], :validator),
-              do: {serie, Enum.filter(list, Vela.validator!(serie, validator, compare_by))}
+              do: {serie, Enum.filter(list, Vela.validator!(vela, serie))}
 
         struct(vela, purged)
       end
@@ -309,17 +313,37 @@ defmodule Vela do
         do: fun.({serie, value})
       )
 
-  def validator!(serie, validator, compare_by) do
+  @spec validator!(data :: Vela.t(), serie :: atom()) :: (Vela.value() -> boolean())
+  def validator!(%type{} = data, serie) do
+    validator = type.config(serie)[:validator]
+    compare_by = type.config(serie)[:compare_by]
+    within_threshold = within_threshold?(type.δ(data)[serie], type.config(serie)[:threshold])
+
     case validator do
       f when is_function(f, 1) ->
-        &validator.(compare_by.(&1))
+        fn value ->
+          value = compare_by.(value)
+          within_threshold.(value) && validator.(value)
+        end
 
       f when is_function(f, 2) ->
-        &validator.(serie, compare_by.(&1))
+        fn value ->
+          value = compare_by.(value)
+          within_threshold.(value) && validator.(serie, value)
+        end
 
       _other ->
-        raise Vela.AccessError, field: :validator, source: &__MODULE__.validator!/3
+        raise Vela.AccessError, field: :validator, source: &__MODULE__.validator!/2
     end
+  end
+
+  @spec within_threshold?({number(), number()}, nil | number()) :: (Vela.value() -> boolean())
+  defp within_threshold?(_minmax, nil), do: fn _ -> true end
+  defp within_threshold?({nil, nil}, _threshold), do: fn _ -> true end
+
+  defp within_threshold?({min, max}, threshold) do
+    band = max - min
+    &(&1 >= min - band * threshold && &1 <= max + band * threshold)
   end
 
   defmodule Stubs do
