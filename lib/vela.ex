@@ -324,13 +324,11 @@ defmodule Vela do
     case validator do
       f when is_function(f, 1) ->
         fn value ->
-          value = compare_by.(value)
           within_threshold.(value) && validator.(value)
         end
 
       f when is_function(f, 2) ->
         fn value ->
-          value = compare_by.(value)
           within_threshold.(value) && validator.(serie, value)
         end
 
@@ -346,9 +344,8 @@ defmodule Vela do
 
   defp within_threshold?({min, max}, threshold, compare_by) do
     [min, max] = Enum.map([min, max], compare_by)
-
     band = max - min
-    &(&1 >= min - band * threshold && &1 <= max + band * threshold)
+    &(compare_by.(&1) >= min - band * threshold && compare_by.(&1) <= max + band * threshold)
   end
 
   defmodule Stubs do
