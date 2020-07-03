@@ -317,7 +317,9 @@ defmodule Vela do
   def validator!(%type{} = data, serie) do
     validator = type.config(serie)[:validator]
     compare_by = type.config(serie)[:compare_by]
-    within_threshold = within_threshold?(type.δ(data)[serie], type.config(serie)[:threshold])
+
+    within_threshold =
+      within_threshold?(type.δ(data)[serie], type.config(serie)[:threshold], compare_by)
 
     case validator do
       f when is_function(f, 1) ->
@@ -337,11 +339,14 @@ defmodule Vela do
     end
   end
 
-  @spec within_threshold?({number(), number()}, nil | number()) :: (Vela.value() -> boolean())
-  defp within_threshold?(_minmax, nil), do: fn _ -> true end
-  defp within_threshold?({nil, nil}, _threshold), do: fn _ -> true end
+  @spec within_threshold?({number(), number()}, nil | number(), (Vela.value() -> boolean())) ::
+          (Vela.value() -> boolean())
+  defp within_threshold?(_minmax, nil, _compare_by), do: fn _ -> true end
+  defp within_threshold?({nil, nil}, _threshold, _compare_by), do: fn _ -> true end
 
-  defp within_threshold?({min, max}, threshold) do
+  defp within_threshold?({min, max}, threshold, compare_by) do
+    [min, max] = Enum.map([min, max], compare_by)
+
     band = max - min
     &(&1 >= min - band * threshold && &1 <= max + band * threshold)
   end

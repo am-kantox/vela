@@ -117,7 +117,7 @@ defmodule VelaTest do
     dt4 = Date.add(dt1, -2)
 
     vela = %Test.Vela.Struct2{integers: [1, 2, 5, 4, 3], dates: [dt1, dt2, dt3, dt4]}
-    assert Test.Vela.Struct2.δ(vela) == [integers: {1, 5}, dates: {dt4, dt2}]
+    assert Test.Vela.Struct2.δ(vela) == [integers: {1, 5}, dates: {dt4, dt2}, maps: {nil, nil}]
 
     assert mod.δ(data) == [series1: {65, 67}, series2: {nil, nil}, series3: {42, 43}]
   end
@@ -130,5 +130,38 @@ defmodule VelaTest do
 
     assert %Test.Vela.Struct2{__errors__: [integers: 5], integers: [1, 3]} =
              put_in(vela, [:integers], 5)
+  end
+
+  test "threshold with extractor" do
+    vela = %Test.Vela.Struct2{
+      maps: [
+        %{date: Date.from_erl!({2020, 7, 2}), number: 1},
+        %{date: Date.from_erl!({2020, 7, 1}), number: 3}
+      ]
+    }
+
+    maps = [
+      %{date: Date.from_erl!({2020, 6, 30}), number: 4},
+      %{date: Date.from_erl!({2020, 7, 1}), number: 3},
+      %{date: Date.from_erl!({2020, 7, 2}), number: 1}
+    ]
+
+    assert %Test.Vela.Struct2{maps: ^maps} =
+             put_in(vela, [:maps], %{date: Date.from_erl!({2020, 6, 30}), number: 4})
+
+    maps = [
+      %{date: Date.from_erl!({2020, 7, 1}), number: 3},
+      %{date: Date.from_erl!({2020, 7, 2}), number: 1},
+      %{date: Date.from_erl!({2020, 7, 3}), number: 0}
+    ]
+
+    assert %Test.Vela.Struct2{maps: ^maps} =
+             put_in(vela, [:maps], %{date: Date.from_erl!({2020, 7, 3}), number: 0})
+
+    errors = [maps: %{date: Date.from_erl!({2020, 7, 3}), number: 5}]
+
+    assert %Test.Vela.Struct2{
+             __errors__: ^errors
+           } = put_in(vela, [:maps], %{date: Date.from_erl!({2020, 7, 3}), number: 5})
   end
 end
