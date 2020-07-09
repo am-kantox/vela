@@ -110,16 +110,16 @@ defmodule VelaTest do
     assert [series1: 65, series3: 43] == Test.Vela.Struct.slice(data)
   end
 
-  test "δ/1", %{data: %mod{} = data} do
+  test "δ/1", %{data: %_mod{} = data} do
     dt1 = Date.utc_today()
     dt2 = Date.add(dt1, 1)
     dt3 = Date.add(dt1, 0)
     dt4 = Date.add(dt1, -2)
 
     vela = %Test.Vela.Struct2{integers: [1, 2, 5, 4, 3], dates: [dt1, dt2, dt3, dt4]}
-    assert Test.Vela.Struct2.δ(vela) == [integers: {1, 5}, dates: {dt4, dt2}, maps: {nil, nil}]
+    assert Vela.δ(vela) == [integers: {1, 5}, dates: {dt4, dt2}, maps: {nil, nil}]
 
-    assert mod.δ(data) == [series1: {65, 67}, series2: {nil, nil}, series3: {42, 43}]
+    assert Vela.δ(data) == [series1: {65, 67}, series2: {nil, nil}, series3: {42, 43}]
   end
 
   test "threshold" do

@@ -76,25 +76,31 @@ defmodule Vela do
           :__struct__ => atom(),
           :__errors__ => [kv()],
           :__meta__ => keyword(),
-          # TODO          :__unmatched__ => [kv()],
           optional(serie()) => [value()]
         }
+
+  @doc "Returns a keyword with series as keys and the hottest value as a value"
+  @callback slice(t()) :: [kv()]
+  @doc """
+  Removes obsoleted elements from the series using the validator given as a second parameter,
+    or a default validator for this serie.
+  """
+  @callback purge(t(), nil | (serie(), value() -> boolean())) :: t()
+  @doc """
+  Returns `{min, max}` tuple for each serie, using the comparator given as a second parameter,
+    or a default comparator for this serie.
+  """
+  @callback delta(t(), nil | (serie(), value(), value() -> boolean())) :: [
+              {atom(), {value(), value()}}
+            ]
+  @doc "Checks two velas given as an input for equality"
+  @callback equal?(t(), t()) :: boolean()
 
   use Boundary, exports: [Access, AccessError, Stubs]
 
   @doc false
   defmacro __using__(opts) do
     quote generated: true, location: :keep, bind_quoted: [opts: opts] do
-      @moduledoc false
-
-      @type t :: %{
-              :__struct__ => __MODULE__,
-              :__errors__ => [Vela.kv()],
-              :__meta__ => keyword(),
-              # TODO              :__unmatched__ => [Vela.kv()],
-              optional(Vela.serie()) => [Vela.value()]
-            }
-
       @compile {:inline, series: 0}
 
       {meta, opts} = Keyword.pop(opts, :mη, [])
@@ -122,6 +128,29 @@ defmodule Vela do
       @fields Keyword.keys(@config)
       @field_count Enum.count(@fields)
 
+      fields_type =
+        {:%{}, [],
+         [
+           {:__struct__, {:__MODULE__, [], Elixir}},
+           {:__errors__,
+            [
+              {{:., [], [{:__aliases__, [alias: false], [:Vela]}, :kv]}, [], []}
+            ]},
+           {:__meta__, {:keyword, [], []}}
+           | Enum.zip(
+               @fields,
+               Stream.cycle([
+                 [
+                   {{:., [], [{:__aliases__, [alias: false], [:Vela]}, :value]}, [], []}
+                 ]
+               ])
+             )
+         ]}
+
+      Enum.each([fields_type], fn ast ->
+        @type t :: unquote(ast)
+      end)
+
       fields_index = Enum.with_index(@fields)
 
       @fields_ordered Enum.sort(
@@ -131,7 +160,6 @@ defmodule Vela do
 
       @with_initials [
         {:__errors__, []},
-        # TODO        {:__unmatched__, []},
         {:__meta__, meta}
         | Enum.zip(@fields_ordered, Stream.cycle([[]]))
       ]
@@ -151,12 +179,13 @@ defmodule Vela do
       def config(serie), do: @config[serie]
 
       use Vela.Access, @config
+      @behaviour Vela
 
-      @spec slice(t()) :: [Vela.kv()]
+      @impl Vela
       def slice(vela),
         do: for({serie, [h | _]} <- vela, do: {serie, h})
 
-      @spec purge(t(), nil | (Vela.serie(), Vela.value() -> boolean())) :: t()
+      @impl Vela
       def purge(vela, validator \\ nil)
 
       def purge(%__MODULE__{} = vela, nil) do
@@ -177,8 +206,7 @@ defmodule Vela do
         struct(vela, purged)
       end
 
-      @spec delta(t(), nil | (Vela.serie(), Vela.value(), Vela.value() -> boolean())) ::
-              [{atom(), {Vela.value(), Vela.value()}}]
+      @impl Vela
       def delta(vela, comparator \\ nil)
 
       def delta(%__MODULE__{} = vela, nil) do
@@ -220,11 +248,7 @@ defmodule Vela do
         end
       end
 
-      @spec δ(t(), nil | (Vela.serie(), Vela.value(), Vela.value() -> boolean())) ::
-              [{atom(), {Vela.value(), Vela.value()}}]
-      def δ(vela, comparator \\ nil), do: delta(vela, comparator)
-
-      @spec equal?(v1 :: t(), v2 :: t()) :: boolean()
+      @impl Vela
       def equal?(%__MODULE__{} = v1, %__MODULE__{} = v2) do
         [v1, v2]
         |> Enum.map(&Vela.flat_map/1)
@@ -319,7 +343,7 @@ defmodule Vela do
     compare_by = type.config(serie)[:compare_by]
 
     within_threshold =
-      within_threshold?(type.δ(data)[serie], type.config(serie)[:threshold], compare_by)
+      within_threshold?(Vela.δ(data)[serie], type.config(serie)[:threshold], compare_by)
 
     case validator do
       f when is_function(f, 1) ->
@@ -336,6 +360,10 @@ defmodule Vela do
         raise Vela.AccessError, field: :validator, source: &__MODULE__.validator!/2
     end
   end
+
+  @spec δ(t(), nil | (serie(), value(), value() -> boolean())) ::
+          [{atom(), {value(), value()}}]
+  def δ(%type{} = vela, comparator \\ nil), do: type.delta(vela, comparator)
 
   @spec within_threshold?({number(), number()}, nil | number(), (Vela.value() -> boolean())) ::
           (Vela.value() -> boolean())

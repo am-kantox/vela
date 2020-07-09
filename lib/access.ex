@@ -8,8 +8,6 @@ defmodule Vela.Access do
 
       @behaviour Elixir.Access
 
-      # TODO Deal with `:__unmatched__`
-
       Enum.each(Keyword.keys(opts), fn key ->
         opts = Macro.escape(opts)
 
