@@ -15,11 +15,16 @@ defmodule VelaTest do
 
   test "put_in/3", %{data: data} do
     assert %Struct{series1: 'DAB'} = put_in(data, [:series1], 68)
+    assert %Struct{series1: 'DAB'} = Vela.put(data, :series1, 68)
 
     assert %Struct{__errors__: [series1: -68], series1: 'ABC', series2: []} =
              put_in(data, [:series1], -68)
 
+    assert %Struct{__errors__: [series1: -68], series1: 'ABC', series2: []} =
+             Vela.put(data, :series1, -68)
+
     assert %Struct{series2: ''} = put_in(data, [:series2], 68)
+    assert %Struct{series2: ''} = Vela.put(data, :series2, 68)
 
     assert %Struct{series2: [-4, -3]} =
              data
@@ -31,6 +36,10 @@ defmodule VelaTest do
 
     assert_raise Vela.AccessError, fn ->
       put_in(data, [:series0], 68)
+    end
+
+    assert_raise Vela.AccessError, fn ->
+      Vela.put(data, :series0, 68)
     end
   end
 

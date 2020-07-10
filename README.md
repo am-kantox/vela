@@ -7,13 +7,14 @@
 ```elixir
 def deps do
   [
-    {:vela, "~> 0.6"}
+    {:vela, "~> 0.7"}
   ]
 end
 ```
 
 ## Changelog
 
+- **`0.7.2`** — `Vela.put/3`
 - **`0.7.0`** — exact type and behaviour for those using `Vela`
 - **`0.6.3`** — fix `threshold` to use `compare_by/1` for cumbersome values
 - **`0.6.1`** — use `threshold` to prevent adding outliers to series

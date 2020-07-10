@@ -419,7 +419,20 @@ defmodule Vela do
   Returns `{min, max}` tuple for each serie, using the comparator given as a second parameter,
     or a default comparator for each serie.
   """
+  @doc since: "0.7.0"
   def δ(%type{} = vela, comparator \\ nil), do: type.delta(vela, comparator)
+
+  @spec put(vela :: Vela.t(), serie :: serie(), value :: value()) :: Vela.t()
+  @doc """
+  Inserts the new value into the serie, going through all the validation and sorting.
+
+  If the value has not passed validation, it’s put into `:__errors__` internal list.
+  If the new length of the serie exceeds the limit set for this serie, the last value
+  (after sorting) gets discarded.
+  """
+  @doc since: "0.7.2"
+  def put(%_{} = vela, serie, value),
+    do: put_in(vela, [serie], value)
 
   @spec within_threshold?({number(), number()}, nil | number(), (Vela.value() -> boolean())) ::
           (Vela.value() -> boolean())
