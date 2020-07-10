@@ -434,7 +434,7 @@ defmodule Vela do
   def put(%_{} = vela, serie, value),
     do: put_in(vela, [serie], value)
 
-  @spec within_threshold?({number(), number()}, nil | number(), (Vela.value() -> boolean())) ::
+  @spec within_threshold?({value(), value()}, nil | number(), (value() -> number())) ::
           (Vela.value() -> boolean())
   defp within_threshold?(_minmax, nil, _compare_by), do: fn _ -> true end
   defp within_threshold?({nil, nil}, _threshold, _compare_by), do: fn _ -> true end
