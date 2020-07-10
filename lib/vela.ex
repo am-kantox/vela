@@ -79,13 +79,28 @@ defmodule Vela do
           optional(serie()) => [value()]
         }
 
-  @doc "Returns a keyword with series as keys and the hottest value as a value"
+  @doc """
+  Returns a keyword with series as keys and the hottest value as a value
+
+  _Example:_
+
+  ```elixir
+  defmodule AB do
+    use Vela, a: [], b: []
+  end
+  AB.slice(struct(AB, [a: [1, 2], b: [3, 4]]))
+
+  #⇒ [a: 1, b: 3]
+  ```
+  """
   @callback slice(t()) :: [kv()]
+
   @doc """
   Removes obsoleted elements from the series using the validator given as a second parameter,
     or a default validator for this serie.
   """
   @callback purge(t(), nil | (serie(), value() -> boolean())) :: t()
+
   @doc """
   Returns `{min, max}` tuple for each serie, using the comparator given as a second parameter,
     or a default comparator for this serie.
@@ -93,6 +108,7 @@ defmodule Vela do
   @callback delta(t(), nil | (serie(), value(), value() -> boolean())) :: [
               {atom(), {value(), value()}}
             ]
+
   @doc "Checks two velas given as an input for equality"
   @callback equal?(t(), t()) :: boolean()
 
@@ -166,15 +182,15 @@ defmodule Vela do
 
       defstruct @with_initials
 
-      @doc false
+      @doc "Returns the list of series declared on #{__MODULE__}"
       @spec series :: [Vela.serie()]
       def series, do: @fields_ordered
 
-      @doc false
+      @doc "Returns the config #{__MODULE__} was declared with"
       @spec config :: keyword()
       def config, do: @config
 
-      @doc false
+      @doc "Returns the config for the serie `serie`, #{__MODULE__} was declared with"
       @spec config(Vela.serie()) :: any()
       def config(serie), do: @config[serie]
 
@@ -324,20 +340,56 @@ defmodule Vela do
     do: do_implement_enumerable(module)
 
   @spec map(vela :: t(), ({serie(), value()} -> {serie(), value()})) :: t()
-  def map(%_{} = vela, fun),
-    do: struct(vela, Enum.map(vela, fun))
+  @doc """
+  Maps the series using `fun` and returns the new `Vela` instance with series mapped
+  """
+  def map(%mod{} = vela, fun) do
+    mapped =
+      vela
+      |> Map.take(mod.series)
+      |> Enum.map(fun)
 
-  @spec flat_map(vela :: t(), ({serie(), value()} -> {serie(), value()})) :: list()
-  def flat_map(%mod{} = vela, fun \\ & &1),
-    do:
-      for(
-        {serie, list} <- vela,
-        serie in mod.series(),
+    struct(vela, mapped)
+  end
+
+  @spec flat_map(
+          vela :: t(),
+          ({serie(), value()} -> {serie(), value()}) | (serie(), value() -> {serie(), value()})
+        ) :: [{serie(), value()}]
+  @doc """
+  Flat maps the series using `fun` and returns the keyword with
+  duplicated keys and mapped values.
+
+  _Example:_
+
+  ```elixir
+  defmodule EO do
+    use Vela,
+      even: [limit: 2],
+      odd: [limit: 2]
+
+    def flat_map(%EO{} = v),
+      do: Vela.flat_map(v, & {&1, &2+1})
+  end
+  EO.flat_map(struct(EO, [even: [2, 4], odd: [1, 3]]))
+
+  #⇒ [even: 3, even: 5, odd: 2, odd: 4]
+  ```
+
+  """
+  def flat_map(vela, fun \\ & &1)
+
+  def flat_map(%mod{} = vela, fun) when is_function(fun, 2) do
+    for {serie, list} <- Map.take(vela, mod.series()),
         value <- list,
-        do: fun.({serie, value})
-      )
+        do: fun.(serie, value)
+  end
+
+  def flat_map(%_mod{} = vela, fun) when is_function(fun, 1),
+    do: flat_map(vela, &fun.({&1, &2}))
 
   @spec validator!(data :: Vela.t(), serie :: atom()) :: (Vela.value() -> boolean())
+  @doc false
   def validator!(%type{} = data, serie) do
     validator = type.config(serie)[:validator]
     compare_by = type.config(serie)[:compare_by]
@@ -363,6 +415,10 @@ defmodule Vela do
 
   @spec δ(t(), nil | (serie(), value(), value() -> boolean())) ::
           [{atom(), {value(), value()}}]
+  @doc """
+  Returns `{min, max}` tuple for each serie, using the comparator given as a second parameter,
+    or a default comparator for each serie.
+  """
   def δ(%type{} = vela, comparator \\ nil), do: type.delta(vela, comparator)
 
   @spec within_threshold?({number(), number()}, nil | number(), (Vela.value() -> boolean())) ::

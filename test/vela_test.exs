@@ -1,6 +1,7 @@
 defmodule VelaTest do
   use ExUnit.Case
   doctest Vela
+  alias Test.Vela.{Struct, Struct2}
 
   setup_all do
     [data: %Test.Vela.Struct{series1: [65, 66, 67], series2: [], series3: [43, 42]}]
@@ -13,14 +14,14 @@ defmodule VelaTest do
   end
 
   test "put_in/3", %{data: data} do
-    assert %Test.Vela.Struct{series1: 'DAB'} = put_in(data, [:series1], 68)
+    assert %Struct{series1: 'DAB'} = put_in(data, [:series1], 68)
 
-    assert %Test.Vela.Struct{__errors__: [series1: -68], series1: 'ABC', series2: []} =
+    assert %Struct{__errors__: [series1: -68], series1: 'ABC', series2: []} =
              put_in(data, [:series1], -68)
 
-    assert %Test.Vela.Struct{series2: ''} = put_in(data, [:series2], 68)
+    assert %Struct{series2: ''} = put_in(data, [:series2], 68)
 
-    assert %Test.Vela.Struct{series2: [-4, -3]} =
+    assert %Struct{series2: [-4, -3]} =
              data
              |> put_in([:series2], 0)
              |> put_in([:series2], -1)
@@ -34,9 +35,9 @@ defmodule VelaTest do
   end
 
   test "pop_in/3", %{data: data} do
-    assert {65, %Test.Vela.Struct{series1: 'BC'}} = pop_in(data, [:series1])
+    assert {65, %Struct{series1: 'BC'}} = pop_in(data, [:series1])
 
-    assert {nil, %Test.Vela.Struct{series2: ''}} = pop_in(data, [:series2])
+    assert {nil, %Struct{series2: ''}} = pop_in(data, [:series2])
 
     assert :ok =
              with(
@@ -57,7 +58,7 @@ defmodule VelaTest do
              [series1: 'BCD', series2: [], series3: ',+']
 
     assert Vela.map(data, fn {serie, list} -> {serie, Enum.map(list, &(&1 + 1))} end) ==
-             %Test.Vela.Struct{
+             %Struct{
                series1: 'BCD',
                series2: [],
                series3: ',+'
@@ -69,7 +70,7 @@ defmodule VelaTest do
 
   test "purge/2", %{data: %mod{} = data} do
     assert mod.purge(data, fn _serie, value -> value != 66 end) ==
-             %Test.Vela.Struct{
+             %Struct{
                series1: 'AC',
                series2: [],
                series3: '+*'
@@ -77,16 +78,16 @@ defmodule VelaTest do
   end
 
   test "equal?/2", %{data: %mod{} = data} do
-    assert mod.equal?(data, %Test.Vela.Struct{
+    assert mod.equal?(data, %Struct{
              series1: [65, 66, 67],
              series2: [],
              series3: [43, 42]
            })
 
-    refute mod.equal?(data, %Test.Vela.Struct{series1: [65, 66], series2: [], series3: [43, 42]})
-    refute mod.equal?(data, %Test.Vela.Struct{series1: [], series2: [1], series3: [43, 42]})
+    refute mod.equal?(data, %Struct{series1: [65, 66], series2: [], series3: [43, 42]})
+    refute mod.equal?(data, %Struct{series1: [], series2: [1], series3: [43, 42]})
 
-    refute mod.equal?(data, %Test.Vela.Struct{
+    refute mod.equal?(data, %Struct{
              series1: [65, 66, 67],
              series2: [1],
              series3: [43, 42]
@@ -96,18 +97,18 @@ defmodule VelaTest do
     dt2 = DateTime.add(dt1, 0)
     dt3 = DateTime.add(dt1, 1)
 
-    assert mod.equal?(%Test.Vela.Struct{series1: [dt1]}, %Test.Vela.Struct{series1: [dt1]})
-    assert mod.equal?(%Test.Vela.Struct{series1: [dt1]}, %Test.Vela.Struct{series1: [dt2]})
-    refute mod.equal?(%Test.Vela.Struct{series1: [dt1]}, %Test.Vela.Struct{series1: [dt3]})
+    assert mod.equal?(%Struct{series1: [dt1]}, %Struct{series1: [dt1]})
+    assert mod.equal?(%Struct{series1: [dt1]}, %Struct{series1: [dt2]})
+    refute mod.equal?(%Struct{series1: [dt1]}, %Struct{series1: [dt3]})
   end
 
   test "sort/3", %{data: %_mod{} = data} do
-    assert %Test.Vela.Struct{series3: [42, 43]} = put_in(data, [:series3], 100)
-    assert %Test.Vela.Struct{series3: [10, 42]} = put_in(data, [:series3], 10)
+    assert %Struct{series3: [42, 43]} = put_in(data, [:series3], 100)
+    assert %Struct{series3: [10, 42]} = put_in(data, [:series3], 10)
   end
 
   test "slice/1", %{data: %_mod{} = data} do
-    assert [series1: 65, series3: 43] == Test.Vela.Struct.slice(data)
+    assert [series1: 65, series3: 43] == Struct.slice(data)
   end
 
   test "δ/1", %{data: %_mod{} = data} do
@@ -116,24 +117,23 @@ defmodule VelaTest do
     dt3 = Date.add(dt1, 0)
     dt4 = Date.add(dt1, -2)
 
-    vela = %Test.Vela.Struct2{integers: [1, 2, 5, 4, 3], dates: [dt1, dt2, dt3, dt4]}
+    vela = %Struct2{integers: [1, 2, 5, 4, 3], dates: [dt1, dt2, dt3, dt4]}
     assert Vela.δ(vela) == [integers: {1, 5}, dates: {dt4, dt2}, maps: {nil, nil}]
 
     assert Vela.δ(data) == [series1: {65, 67}, series2: {nil, nil}, series3: {42, 43}]
   end
 
   test "threshold" do
-    vela = %Test.Vela.Struct2{integers: [1, 3]}
+    vela = %Struct2{integers: [1, 3]}
 
-    assert %Test.Vela.Struct2{integers: [1, 3, 4]} = put_in(vela, [:integers], 4)
-    assert %Test.Vela.Struct2{integers: [0, 1, 3]} = put_in(vela, [:integers], 0)
+    assert %Struct2{integers: [1, 3, 4]} = put_in(vela, [:integers], 4)
+    assert %Struct2{integers: [0, 1, 3]} = put_in(vela, [:integers], 0)
 
-    assert %Test.Vela.Struct2{__errors__: [integers: 5], integers: [1, 3]} =
-             put_in(vela, [:integers], 5)
+    assert %Struct2{__errors__: [integers: 5], integers: [1, 3]} = put_in(vela, [:integers], 5)
   end
 
   test "threshold with extractor" do
-    vela = %Test.Vela.Struct2{
+    vela = %Struct2{
       maps: [
         %{date: Date.from_erl!({2020, 7, 2}), number: 1},
         %{date: Date.from_erl!({2020, 7, 1}), number: 3}
@@ -146,7 +146,7 @@ defmodule VelaTest do
       %{date: Date.from_erl!({2020, 7, 2}), number: 1}
     ]
 
-    assert %Test.Vela.Struct2{maps: ^maps} =
+    assert %Struct2{maps: ^maps} =
              put_in(vela, [:maps], %{date: Date.from_erl!({2020, 6, 30}), number: 4})
 
     maps = [
@@ -155,12 +155,12 @@ defmodule VelaTest do
       %{date: Date.from_erl!({2020, 7, 3}), number: 0}
     ]
 
-    assert %Test.Vela.Struct2{maps: ^maps} =
+    assert %Struct2{maps: ^maps} =
              put_in(vela, [:maps], %{date: Date.from_erl!({2020, 7, 3}), number: 0})
 
     errors = [maps: %{date: Date.from_erl!({2020, 7, 3}), number: 5}]
 
-    assert %Test.Vela.Struct2{
+    assert %Struct2{
              __errors__: ^errors
            } = put_in(vela, [:maps], %{date: Date.from_erl!({2020, 7, 3}), number: 5})
   end
