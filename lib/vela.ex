@@ -20,6 +20,9 @@ defmodule Vela do
     `fn _ -> true end`)
   - `sorter` — the function to be used to sort values within one serie, if
     none is given, it sorts in the natural order, FIFO, newest is the one to `pop`
+  - `corrector` — the function to be used to correct the values rejected by `validator`;
+    the function should return `{:ok, corrected_value}` to enforce insertion into `Vela`,
+    or `:error` if the value cannot be corrected and should be nevertheless rejected
   - `errors` — number of errors to keep (default: `5`)
 
   Also, Vela accepts `:mη` keyword parameter for the cases when the consumer needs
@@ -71,6 +74,30 @@ defmodule Vela do
   @typedoc "Represents a key-value pair in errors and unmatched"
   @type kv :: {serie(), value()}
 
+  @typedoc """
+  The type of validator function to be passed as `:validator` keyword parameter
+    to the series.
+  """
+  @type validator :: (value() -> boolean())
+
+  @typedoc """
+  The type of comparator function to be passed as `:comparator` keyword parameter
+    to the series.
+  """
+  @type comparator :: (value(), value() -> boolean())
+
+  @typedoc """
+  The type of sorter function to be passed as `:sorter` keyword parameter
+    to the series.
+  """
+  @type sorter :: (value(), value() -> boolean())
+
+  @typedoc """
+  The type of sorter function to be passed as `:sorter` keyword parameter
+    to the series.
+  """
+  @type corrector :: (serie(), value() -> {:ok, value()} | :error)
+
   @typedoc "Represents the struct created by this behaviour module"
   @type t :: %{
           :__struct__ => atom(),
@@ -78,6 +105,20 @@ defmodule Vela do
           :__meta__ => keyword(),
           optional(serie()) => [value()]
         }
+
+  @typedoc "Options allowed in series configuration"
+  @type option ::
+          {:limit, non_neg_integer()}
+          | {:compare_by, (value() -> any())}
+          | {:comparator, comparator()}
+          | {:threshold, number()}
+          | {:validator, validator()}
+          | {:sorter, sorter()}
+          | {:corrector, corrector()}
+          | {:errors, keyword()}
+
+  @typedoc "Series configuration"
+  @type options :: [option()]
 
   @doc """
   Returns a keyword with series as keys and the hottest value as a value
@@ -117,7 +158,7 @@ defmodule Vela do
   @doc false
   defmacro __using__(opts) do
     quote generated: true, location: :keep, bind_quoted: [opts: opts] do
-      @compile {:inline, series: 0}
+      @compile {:inline, series: 0, config: 0, config: 1}
 
       {meta, opts} = Keyword.pop(opts, :mη, [])
 
@@ -129,6 +170,7 @@ defmodule Vela do
                   |> Keyword.put_new(:sorter, &Vela.Stubs.sort/2)
                   |> Keyword.put_new(:compare_by, &Vela.Stubs.itself/1)
                   |> Keyword.put_new(:comparator, &Vela.Stubs.compare/2)
+                  |> Keyword.put_new(:corrector, &Vela.Stubs.correct/2)
                   |> Keyword.put_new(:threshold, nil)
                   |> Keyword.update(:validator, &Vela.Stubs.validate/1, fn existing ->
                     case existing do
@@ -187,11 +229,11 @@ defmodule Vela do
       def series, do: @fields_ordered
 
       @doc "Returns the config #{__MODULE__} was declared with"
-      @spec config :: keyword()
+      @spec config :: [{atom(), Vela.options()}]
       def config, do: @config
 
       @doc "Returns the config for the serie `serie`, #{__MODULE__} was declared with"
-      @spec config(Vela.serie()) :: any()
+      @spec config(Vela.serie()) :: Vela.options()
       def config(serie), do: @config[serie]
 
       use Vela.Access, @config
@@ -271,7 +313,7 @@ defmodule Vela do
         |> Enum.reduce(&do_equal?/2)
       end
 
-      @spec do_equal?(kw1 :: keyword(), kw2 :: keyword()) :: boolean()
+      @spec do_equal?(kw1 :: [Vela.kv()], kw2 :: [Vela.kv()]) :: boolean()
       defp do_equal?(kw1, kw2) when length(kw1) != length(kw2), do: false
 
       defp do_equal?(kw1, kw2) do
@@ -339,7 +381,7 @@ defmodule Vela do
   def implement_enumerable(%Macro.Env{module: module}, _bytecode),
     do: do_implement_enumerable(module)
 
-  @spec map(vela :: t(), ({serie(), value()} -> {serie(), value()})) :: t()
+  @spec map(vela :: t(), (kv() -> kv())) :: t()
   @doc """
   Maps the series using `fun` and returns the new `Vela` instance with series mapped
   """
@@ -352,10 +394,7 @@ defmodule Vela do
     struct(vela, mapped)
   end
 
-  @spec flat_map(
-          vela :: t(),
-          ({serie(), value()} -> {serie(), value()}) | (serie(), value() -> {serie(), value()})
-        ) :: [{serie(), value()}]
+  @spec flat_map(vela :: t(), (kv() -> kv()) | (serie(), value() -> kv())) :: [kv()]
   @doc """
   Flat maps the series using `fun` and returns the keyword with
   duplicated keys and mapped values.
@@ -388,7 +427,7 @@ defmodule Vela do
   def flat_map(%_mod{} = vela, fun) when is_function(fun, 1),
     do: flat_map(vela, &fun.({&1, &2}))
 
-  @spec validator!(data :: Vela.t(), serie :: atom()) :: (Vela.value() -> boolean())
+  @spec validator!(data :: t(), serie :: serie()) :: validator()
   @doc false
   def validator!(%type{} = data, serie) do
     validator = type.config(serie)[:validator]
@@ -422,7 +461,7 @@ defmodule Vela do
   @doc since: "0.7.0"
   def δ(%type{} = vela, comparator \\ nil), do: type.delta(vela, comparator)
 
-  @spec put(vela :: Vela.t(), serie :: serie(), value :: value()) :: Vela.t()
+  @spec put(vela :: t(), serie :: serie(), value :: value()) :: t()
   @doc """
   Inserts the new value into the serie, going through all the validation and sorting.
 
@@ -435,7 +474,7 @@ defmodule Vela do
     do: put_in(vela, [serie], value)
 
   @spec within_threshold?({value(), value()}, nil | number(), (value() -> number())) ::
-          (Vela.value() -> boolean())
+          validator()
   defp within_threshold?(_minmax, nil, _compare_by), do: fn _ -> true end
   defp within_threshold?({nil, nil}, _threshold, _compare_by), do: fn _ -> true end
 
@@ -447,7 +486,7 @@ defmodule Vela do
 
   defmodule Stubs do
     @moduledoc false
-    @spec itself(Vela.value()) :: any()
+    @spec itself(Vela.value()) :: Vela.value()
     def itself(v), do: v
 
     @spec validate(Vela.value()) :: boolean()
@@ -458,5 +497,8 @@ defmodule Vela do
 
     @spec sort(Vela.value(), Vela.value()) :: boolean()
     def sort(_v1, _v2), do: true
+
+    @spec correct(Vela.serie(), Vela.value()) :: {:ok, Vela.value()} | :error
+    def correct(_serie, _value), do: :error
   end
 end

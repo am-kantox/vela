@@ -24,13 +24,21 @@ defmodule Vela.Access do
           do: {value, %{data | unquote(key) => tail}}
 
         @impl Elixir.Access
-        def get_and_update(%_type{unquote(key) => values} = data, unquote(key), fun) do
+        def get_and_update(%type{unquote(key) => values} = data, unquote(key), fun) do
           case fun.(List.first(values)) do
             :pop ->
               pop(data, unquote(key))
 
             {get_value, update_value} ->
-              valid = Vela.validator!(data, unquote(key)).(update_value)
+              {valid, update_value} =
+                if Vela.validator!(data, unquote(key)).(update_value) do
+                  {true, update_value}
+                else
+                  case type.config(unquote(key))[:corrector].(unquote(key), update_value) do
+                    {:ok, corrected_value} -> {true, corrected_value}
+                    :error -> {false, update_value}
+                  end
+                end
 
               updated_data =
                 if valid do
