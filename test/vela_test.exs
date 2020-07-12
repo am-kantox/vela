@@ -173,4 +173,11 @@ defmodule VelaTest do
              __errors__: ^errors
            } = put_in(vela, [:maps], %{date: Date.from_erl!({2020, 7, 3}), number: 5})
   end
+
+  test "corrector/2" do
+    vela = %Struct2{integers: [1, 3]}
+
+    assert %Struct2{__errors__: [integers: 5], integers: [1, 3]} = put_in(vela, [:integers], 5)
+    assert %Struct2{__errors__: [], integers: [1, 3, 42]} = put_in(vela, [:integers], 42)
+  end
 end

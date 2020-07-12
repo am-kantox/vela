@@ -39,6 +39,9 @@ defmodule Test.Vela.Struct2Checkers do
     do: Date.compare(d1, d2) == :lt
 
   def extract_number(%{number: number}), do: number
+
+  def correct_integer(_, 42), do: {:ok, 42}
+  def correct_integer(_, _), do: :error
 end
 
 defmodule Test.Vela.Struct2 do
@@ -49,7 +52,13 @@ defmodule Test.Vela.Struct2 do
   import Test.Vela.Struct2Checkers
 
   use Vela,
-    integers: [limit: 3, validator: &good_integer/1, sorter: &</2, threshold: 0.5],
+    integers: [
+      limit: 3,
+      validator: &good_integer/1,
+      sorter: &</2,
+      threshold: 0.5,
+      corrector: &correct_integer/2
+    ],
     dates: [
       limit: 3,
       validator: &good_date/2,
