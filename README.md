@@ -14,6 +14,8 @@ end
 
 ## Changelog
 
+- **`0.8.0`** — allow a `corrector/2` callback to allow correction of rejected values as
+  a series keyword parameter
 - **`0.7.2`** — `Vela.put/3`
 - **`0.7.0`** — exact type and behaviour for those using `Vela`
 - **`0.6.3`** — fix `threshold` to use `compare_by/1` for cumbersome values
