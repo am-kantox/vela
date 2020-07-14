@@ -40,8 +40,8 @@ defmodule Test.Vela.Struct2Checkers do
 
   def extract_number(%{number: number}), do: number
 
-  def correct_integer(_, 42), do: {:ok, 42}
-  def correct_integer(_, _), do: :error
+  def correct_integer(_, _, 42), do: {:ok, 42}
+  def correct_integer(_, _, _), do: :error
 end
 
 defmodule Test.Vela.Struct2 do
@@ -57,7 +57,7 @@ defmodule Test.Vela.Struct2 do
       validator: &good_integer/1,
       sorter: &</2,
       threshold: 0.5,
-      corrector: &correct_integer/2
+      corrector: &correct_integer/3
     ],
     dates: [
       limit: 3,

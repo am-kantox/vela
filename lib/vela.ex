@@ -96,7 +96,7 @@ defmodule Vela do
   The type of sorter function to be passed as `:sorter` keyword parameter
     to the series.
   """
-  @type corrector :: (serie(), value() -> {:ok, value()} | :error)
+  @type corrector :: (t(), serie(), value() -> {:ok, value()} | :error)
 
   @typedoc "Represents the struct created by this behaviour module"
   @type t :: %{
@@ -170,7 +170,7 @@ defmodule Vela do
                   |> Keyword.put_new(:sorter, &Vela.Stubs.sort/2)
                   |> Keyword.put_new(:compare_by, &Vela.Stubs.itself/1)
                   |> Keyword.put_new(:comparator, &Vela.Stubs.compare/2)
-                  |> Keyword.put_new(:corrector, &Vela.Stubs.correct/2)
+                  |> Keyword.put_new(:corrector, &Vela.Stubs.correct/3)
                   |> Keyword.put_new(:threshold, nil)
                   |> Keyword.update(:validator, &Vela.Stubs.validate/1, fn existing ->
                     case existing do
@@ -498,7 +498,7 @@ defmodule Vela do
     @spec sort(Vela.value(), Vela.value()) :: boolean()
     def sort(_v1, _v2), do: true
 
-    @spec correct(Vela.serie(), Vela.value()) :: {:ok, Vela.value()} | :error
-    def correct(_serie, _value), do: :error
+    @spec correct(Vela.t(), Vela.serie(), Vela.value()) :: {:ok, Vela.value()} | :error
+    def correct(_vela, _serie, _value), do: :error
   end
 end
