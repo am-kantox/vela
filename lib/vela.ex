@@ -218,6 +218,7 @@ defmodule Vela do
                         Keyword.get(@meta, :order_by, &(fields_index[&1] <= fields_index[&2]))
                       )
 
+      # initial must be a list; while undocumented, I omit the check here
       initials = for f <- @fields_ordered, do: {f, Keyword.get(unquote(opts)[f], :initial, [])}
 
       defstruct [{:__errors__, []}, {:__meta__, @meta} | initials]
