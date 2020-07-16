@@ -53,6 +53,7 @@ defmodule Test.Vela.Struct2 do
 
   use Vela,
     integers: [
+      type: integer(),
       limit: 3,
       validator: &good_integer/1,
       sorter: &</2,

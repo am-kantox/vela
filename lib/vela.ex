@@ -157,14 +157,40 @@ defmodule Vela do
 
   @doc false
   defmacro __using__(opts) do
-    quote generated: true, location: :keep, bind_quoted: [opts: opts] do
+    fields = Keyword.keys(opts)
+    {meta, opts} = Keyword.pop(opts, :mη, [])
+
+    typedefs =
+      for {serie, desc} <- opts do
+        {
+          serie,
+          Keyword.get(desc, :type, [
+            {{:., [], [{:__aliases__, [alias: false], [:Vela]}, :value]}, [], []}
+          ])
+        }
+      end
+
+    typedef =
+      {:%{}, [],
+       [
+         {:__struct__, {:__MODULE__, [], Elixir}},
+         {:__errors__,
+          [
+            {{:., [], [{:__aliases__, [alias: false], [:Vela]}, :kv]}, [], []}
+          ]},
+         {:__meta__, {:keyword, [], []}}
+         | typedefs
+       ]}
+
+    opts = for {serie, desc} <- opts, do: {serie, Keyword.delete(desc, :type)}
+
+    quote generated: true, location: :keep do
       @compile {:inline, series: 0, config: 0, config: 1}
-
-      {meta, opts} = Keyword.pop(opts, :mη, [])
-
       @after_compile {Vela, :implement_enumerable}
 
-      @config Enum.map(opts, fn {serie, vela} ->
+      @meta unquote(meta)
+      @type t :: unquote(typedef)
+      @config Enum.map(unquote(opts), fn {serie, vela} ->
                 vela =
                   vela
                   |> Keyword.put_new(:sorter, &Vela.Stubs.sort/2)
@@ -183,46 +209,18 @@ defmodule Vela do
                 {serie, vela}
               end)
 
-      @fields Keyword.keys(@config)
-      @field_count Enum.count(@fields)
-
-      fields_type =
-        {:%{}, [],
-         [
-           {:__struct__, {:__MODULE__, [], Elixir}},
-           {:__errors__,
-            [
-              {{:., [], [{:__aliases__, [alias: false], [:Vela]}, :kv]}, [], []}
-            ]},
-           {:__meta__, {:keyword, [], []}}
-           | Enum.zip(
-               @fields,
-               Stream.cycle([
-                 [
-                   {{:., [], [{:__aliases__, [alias: false], [:Vela]}, :value]}, [], []}
-                 ]
-               ])
-             )
-         ]}
-
-      Enum.each([fields_type], fn ast ->
-        @type t :: unquote(ast)
-      end)
+      @fields unquote(fields)
 
       fields_index = Enum.with_index(@fields)
 
       @fields_ordered Enum.sort(
                         @fields,
-                        Keyword.get(meta, :order_by, &(fields_index[&1] <= fields_index[&2]))
+                        Keyword.get(@meta, :order_by, &(fields_index[&1] <= fields_index[&2]))
                       )
 
-      @with_initials [
-        {:__errors__, []},
-        {:__meta__, meta}
-        | Enum.zip(@fields_ordered, Stream.cycle([[]]))
-      ]
+      initials = for f <- @fields_ordered, do: {f, Keyword.get(unquote(opts)[f], :initial, [])}
 
-      defstruct @with_initials
+      defstruct [{:__errors__, []}, {:__meta__, @meta} | initials]
 
       @doc "Returns the list of series declared on #{__MODULE__}"
       @spec series :: [Vela.serie()]
