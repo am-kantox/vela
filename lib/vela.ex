@@ -156,7 +156,7 @@ defmodule Vela do
   use Boundary, exports: [Access, AccessError, Stubs]
 
   @doc false
-  defmacro __using__(opts) do
+  defmacro __using__(opts) when is_list(opts) do
     fields = Keyword.keys(opts)
     {meta, opts} = Keyword.pop(opts, :mη, [])
 
@@ -222,6 +222,188 @@ defmodule Vela do
       initials = for f <- @fields_ordered, do: {f, Keyword.get(unquote(opts)[f], :initial, [])}
 
       defstruct [{:__errors__, []}, {:__meta__, @meta} | initials]
+
+      @doc "Returns the list of series declared on #{__MODULE__}"
+      @spec series :: [Vela.serie()]
+      def series, do: @fields_ordered
+
+      @doc "Returns the config #{__MODULE__} was declared with"
+      @spec config :: [{atom(), Vela.options()}]
+      def config, do: @config
+
+      @doc "Returns the config for the serie `serie`, #{__MODULE__} was declared with"
+      @spec config(Vela.serie()) :: Vela.options()
+      def config(serie), do: @config[serie]
+
+      use Vela.Access, @config
+      @behaviour Vela
+
+      @impl Vela
+      def slice(vela),
+        do: for({serie, [h | _]} <- vela, do: {serie, h})
+
+      @impl Vela
+      def purge(vela, validator \\ nil)
+
+      def purge(%__MODULE__{} = vela, nil) do
+        purged =
+          for {serie, list} <- vela,
+              serie in series(),
+              do: {serie, Enum.filter(list, Vela.validator!(vela, serie))}
+
+        struct(vela, purged)
+      end
+
+      def purge(%__MODULE__{} = vela, validator) do
+        purged =
+          for {serie, list} <- vela,
+              serie in series(),
+              do: {serie, Enum.filter(list, &validator.(serie, &1))}
+
+        struct(vela, purged)
+      end
+
+      @impl Vela
+      def delta(vela, comparator \\ nil)
+
+      def delta(%__MODULE__{} = vela, nil) do
+        for {serie, list} <- vela,
+            serie in series(),
+            compare_by = Keyword.get(@config[serie], :compare_by),
+            comparator = Keyword.get(@config[serie], :comparator) do
+          min_max =
+            Enum.reduce(list, {nil, nil}, fn
+              v, {nil, nil} ->
+                {v, v}
+
+              v, {min, max} ->
+                {
+                  if(comparator.(compare_by.(v), compare_by.(min)), do: v, else: min),
+                  if(comparator.(compare_by.(max), compare_by.(v)), do: v, else: max)
+                }
+            end)
+
+          {serie, min_max}
+        end
+      end
+
+      def delta(%__MODULE__{} = vela, comparator) do
+        for {serie, list} <- vela, serie in series() do
+          min_max =
+            Enum.reduce(list, {nil, nil}, fn
+              v, {nil, nil} ->
+                {v, v}
+
+              v, {min, max} ->
+                {
+                  if(comparator.(serie, v, min), do: v, else: min),
+                  if(comparator.(serie, max, v), do: v, else: max)
+                }
+            end)
+
+          {serie, min_max}
+        end
+      end
+
+      @impl Vela
+      def equal?(%__MODULE__{} = v1, %__MODULE__{} = v2) do
+        [v1, v2]
+        |> Enum.map(&Vela.flat_map/1)
+        |> Enum.reduce(&do_equal?/2)
+      end
+
+      @spec do_equal?(kw1 :: [Vela.kv()], kw2 :: [Vela.kv()]) :: boolean()
+      defp do_equal?(kw1, kw2) when length(kw1) != length(kw2), do: false
+
+      defp do_equal?(kw1, kw2) do
+        [kw1, kw2]
+        |> Enum.zip()
+        |> Enum.reduce_while(true, fn
+          {{serie, %mod{} = value1}, {serie, %mod{} = value2}}, true ->
+            if (mod.__info__(:functions)[:equal?] == 2 and mod.equal?(value1, value2)) or
+                 (mod.__info__(:functions)[:compare] == 2 and mod.compare(value1, value2) == :eq) or
+                 value1 == value2,
+               do: {:cont, true},
+               else: {:halt, false}
+
+          {{serie, value1}, {serie, value2}}, true ->
+            if value1 == value2, do: {:cont, true}, else: {:halt, false}
+
+          _, true ->
+            {:halt, false}
+        end)
+      end
+    end
+  end
+
+  @doc false
+  defmacro __using__(opts) do
+    quote generated: true, location: :keep, bind_quoted: [opts: opts] do
+      @compile {:inline, series: 0, config: 0, config: 1}
+
+      {meta, opts} = Keyword.pop(opts, :mη, [])
+
+      @after_compile {Vela, :implement_enumerable}
+
+      @config Enum.map(opts, fn {serie, vela} ->
+                vela =
+                  vela
+                  |> Keyword.put_new(:sorter, &Vela.Stubs.sort/2)
+                  |> Keyword.put_new(:compare_by, &Vela.Stubs.itself/1)
+                  |> Keyword.put_new(:comparator, &Vela.Stubs.compare/2)
+                  |> Keyword.put_new(:corrector, &Vela.Stubs.correct/3)
+                  |> Keyword.put_new(:threshold, nil)
+                  |> Keyword.update(:validator, &Vela.Stubs.validate/1, fn existing ->
+                    case existing do
+                      fun when is_function(fun, 1) or is_function(fun, 2) -> fun
+                      m when is_atom(m) -> &m.valid?/2
+                      other -> raise Vela.AccessError, field: :validator
+                    end
+                  end)
+
+                {serie, vela}
+              end)
+
+      @fields Keyword.keys(@config)
+      @field_count Enum.count(@fields)
+
+      fields_type =
+        {:%{}, [],
+         [
+           {:__struct__, {:__MODULE__, [], Elixir}},
+           {:__errors__,
+            [
+              {{:., [], [{:__aliases__, [alias: false], [:Vela]}, :kv]}, [], []}
+            ]},
+           {:__meta__, {:keyword, [], []}}
+           | Enum.zip(
+               @fields,
+               Stream.cycle([
+                 [
+                   {{:., [], [{:__aliases__, [alias: false], [:Vela]}, :value]}, [], []}
+                 ]
+               ])
+             )
+         ]}
+
+      Enum.each([fields_type], fn ast ->
+        @type t :: unquote(ast)
+      end)
+
+      fields_index = Enum.with_index(@fields)
+
+      @fields_ordered Enum.sort(
+                        @fields,
+                        Keyword.get(meta, :order_by, &(fields_index[&1] <= fields_index[&2]))
+                      )
+
+      @with_initials [
+        {:__errors__, []},
+        {:__meta__, meta}
+        | Enum.zip(@fields_ordered, Stream.cycle([[]]))
+      ]
+
+      defstruct @with_initials
 
       @doc "Returns the list of series declared on #{__MODULE__}"
       @spec series :: [Vela.serie()]

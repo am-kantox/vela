@@ -44,6 +44,15 @@ defmodule Test.Vela.Struct2Checkers do
   def correct_integer(_, _, _), do: :error
 end
 
+defmodule T do
+  @moduledoc false
+  use Boundary, deps: [Vela]
+  @type int :: integer()
+
+  @vela [foo: []]
+  use Vela, @vela
+end
+
 defmodule Test.Vela.Struct2 do
   @moduledoc false
 
@@ -53,7 +62,7 @@ defmodule Test.Vela.Struct2 do
 
   use Vela,
     integers: [
-      type: integer(),
+      type: T.int(),
       limit: 3,
       validator: &good_integer/1,
       sorter: &</2,
