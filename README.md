@@ -14,6 +14,8 @@ end
 
 ## Changelog
 
+- **`0.9.0`** — allow a precise type definition of each serie via `type: type()` keyword parameter
+  a series keyword parameter
 - **`0.8.0`** — allow a `corrector/2` callback to allow correction of rejected values as
   a series keyword parameter
 - **`0.7.2`** — `Vela.put/3`
