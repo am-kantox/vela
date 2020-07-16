@@ -44,12 +44,13 @@ defmodule Test.Vela.Struct2Checkers do
   def correct_integer(_, _, _), do: :error
 end
 
-defmodule T do
+defmodule Nested.Module.T do
   @moduledoc false
+
   use Boundary, deps: [Vela]
   @type int :: integer()
 
-  @vela [foo: []]
+  @vela [foo: [type: {Nested.Module.T, :int}]]
   use Vela, @vela
 end
 
@@ -62,7 +63,7 @@ defmodule Test.Vela.Struct2 do
 
   use Vela,
     integers: [
-      type: T.int(),
+      type: {Nested.Module.T, :int},
       limit: 3,
       validator: &good_integer/1,
       sorter: &</2,
@@ -71,6 +72,7 @@ defmodule Test.Vela.Struct2 do
     ],
     dates: [
       limit: 3,
+      type: Date.t(),
       validator: &good_date/2,
       sorter: &compare_dates/2,
       comparator: &compare_dates/2

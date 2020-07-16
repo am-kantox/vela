@@ -160,20 +160,61 @@ defmodule Vela do
   alias Vela.Stubs
   import Vela.Macros
   @doc false
-  defmacro __using__(opts) do
+  defmacro __using__(opts) when is_list(opts) do
+    fields = Keyword.keys(opts)
+
+    {meta, opts} = Keyword.pop(opts, :mη, [])
+
+    typedefs = for {k, v} <- opts, do: {k, v[:type]}
+    typedef = use_types(typedefs)
+    opts = for {serie, desc} <- opts, do: {serie, Keyword.delete(desc, :type)}
+
     quote generated: true, location: :keep do
       @compile {:inline, series: 0, config: 0, config: 1, config: 2}
       @after_compile {Vela, :implement_enumerable}
 
       import Vela.Macros
 
-      {opts, meta, fields, typedef} = wrapped_use(unquote(opts))
+      @meta unquote(meta)
+      @fields unquote(fields)
+
+      @type t :: unquote(typedef)
+      @config use_config(unquote(opts))
+      @field_count Enum.count(@fields)
+      fields_index = Enum.with_index(@fields)
+
+      @fields_ordered Enum.sort(
+                        @fields,
+                        Keyword.get(@meta, :order_by, &(fields_index[&1] <= fields_index[&2]))
+                      )
+
+      defstruct [
+        {:__errors__, []},
+        {:__meta__, @meta}
+        | Enum.zip(@fields_ordered, Stream.cycle([[]]))
+      ]
+
+      main_ast()
+    end
+  end
+
+  defmacro __using__(opts) do
+    quote generated: true,
+          location: :keep,
+          bind_quoted: [opts: opts] do
+      @compile {:inline, series: 0, config: 0, config: 1, config: 2}
+      @after_compile {Vela, :implement_enumerable}
+
+      import Vela.Macros
+
+      {meta, opts} = Keyword.pop(opts, :mη, [])
+      typedefs = for {k, v} <- opts, do: {k, v[:type]}
+      typedef = use_types(typedefs)
 
       @meta meta
-      @fields fields
+      @fields Keyword.keys(typedefs)
 
-      # @type t :: unquote(typedef)
-
+      @type t :: unquote(typedef)
       @config use_config(opts)
       @field_count Enum.count(@fields)
       fields_index = Enum.with_index(@fields)

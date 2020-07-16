@@ -27,6 +27,25 @@ defmodule Vela.Macros do
   end
 
   def use_types(extra_types) when is_list(extra_types) do
+    extra_types =
+      Enum.map(extra_types, fn
+        {k, nil} ->
+          {k, [{{:., [], [{:__aliases__, [alias: false], [:Vela]}, :value]}, [], []}]}
+
+        {k, type} when is_atom(type) ->
+          {k, {type, [], []}}
+
+        {k, {{_, _, _} = module, type}} ->
+          {k, {{:., [], [module, type]}, [], []}}
+
+        {k, {module, type}} when is_atom(module) and is_atom(type) ->
+          modules = module |> Module.split() |> Enum.map(&:"#{&1}")
+          {k, {{:., [], [{:__aliases__, [alias: false], modules}, type]}, [], []}}
+
+        {k, v} ->
+          {k, v}
+      end)
+
     {:%{}, [],
      [
        {:__struct__, {:__MODULE__, [], Elixir}},
@@ -75,59 +94,6 @@ defmodule Vela.Macros do
       @impl Vela
       def equal?(%__MODULE__{} = v1, %__MODULE__{} = v2),
         do: Vela.equal?(v1, v2)
-    end
-  end
-
-  defmacro wrapped_use(opts) when is_list(opts) do
-    fields = Keyword.keys(opts)
-
-    {meta, opts} = Keyword.pop(opts, :mη, [])
-
-    typedefs =
-      for {serie, desc} <- opts do
-        {
-          serie,
-          Keyword.get(desc, :type, [
-            {{:., [], [{:__aliases__, [alias: false], [:Vela]}, :value]}, [], []}
-          ])
-        }
-      end
-
-    typedef =
-      Macro.escape(
-        {:%{}, [],
-         [
-           {:__struct__, {:__MODULE__, [], Elixir}},
-           {:__errors__,
-            [
-              {{:., [], [{:__aliases__, [alias: false], [:Vela]}, :kv]}, [], []}
-            ]},
-           {:__meta__, {:keyword, [], []}}
-           | typedefs
-         ]}
-      )
-
-    opts = for {serie, desc} <- opts, do: {serie, Keyword.delete(desc, :type)}
-
-    quote generated: true, location: :keep do
-      {unquote(opts), unquote(meta), unquote(fields), unquote(typedef)}
-    end
-  end
-
-  defmacro wrapped_use(opts) do
-    quote generated: true,
-          location: :keep,
-          bind_quoted: [opts: opts] do
-      {meta, opts} = Keyword.pop(opts, :mη, [])
-      fields = Keyword.keys(opts)
-
-      {opts, meta, fields,
-       use_types(
-         Enum.zip(
-           fields,
-           Stream.cycle([[{{:., [], [{:__aliases__, [alias: false], [:Vela]}, :value]}, [], []}]])
-         )
-       )}
     end
   end
 end
