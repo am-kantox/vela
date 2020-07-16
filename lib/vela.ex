@@ -155,9 +155,9 @@ defmodule Vela do
   @doc "Checks two velas given as an input for equality"
   @callback equal?(t(), t()) :: boolean()
 
-  alias Vela.Stubs
-  use Boundary, exports: [Access, AccessError, Stubs]
+  use Boundary, exports: [Access, AccessError, Stubs, Macros]
 
+  alias Vela.Stubs
   import Vela.Macros
   @doc false
   defmacro __using__(opts) do
