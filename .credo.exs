@@ -14,7 +14,8 @@
         {Credo.Check.Refactor.Nesting, max_nesting: 3},
         {Credo.Check.Design.AliasUsage, exit_status: 0},
         {Credo.Check.Design.TagTODO, exit_status: 0},
-        {Credo.Check.Design.TagFIXME, exit_status: 0}
+        {Credo.Check.Design.TagFIXME, exit_status: 0},
+        {Credo.Check.Refactor.CyclomaticComplexity, max_complexity: 12}
       ]
     }
   ]
