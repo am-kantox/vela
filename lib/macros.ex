@@ -3,6 +3,12 @@ defmodule Vela.Macros do
 
   alias Vela.Stubs
 
+  def make_arity_2(f) when is_function(f, 1),
+    do: fn _serie, value -> f.(value) end
+
+  def make_arity_2(f) when is_function(f, 2),
+    do: f
+
   defmacro use_config(opts) do
     quote do
       Enum.map(unquote(opts), fn {serie, vela} ->

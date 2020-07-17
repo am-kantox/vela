@@ -333,19 +333,10 @@ defmodule Vela do
     within_threshold =
       within_threshold?(Vela.δ(data)[serie], type.config(serie)[:threshold], compare_by)
 
-    case validator do
-      f when is_function(f, 1) ->
-        fn value ->
-          within_threshold.(value) && validator.(value)
-        end
+    validator = make_arity_2(validator)
 
-      f when is_function(f, 2) ->
-        fn value ->
-          within_threshold.(value) && validator.(serie, value)
-        end
-
-      _other ->
-        raise Vela.AccessError, field: :validator, source: &__MODULE__.validator!/2
+    fn serie, value ->
+      within_threshold.(value) && validator.(serie, value)
     end
   end
 
