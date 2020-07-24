@@ -13,7 +13,6 @@ defmodule Vela.MixProject do
       compilers: compilers(Mix.env()),
       elixirc_paths: elixirc_paths(Mix.env()),
       consolidate_protocols: not (Mix.env() in [:dev, :test]),
-      xref: [exclude: []],
       description: description(),
       package: package(),
       deps: deps(),

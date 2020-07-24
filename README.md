@@ -1,4 +1,4 @@
-# ![Vela](https://raw.githubusercontent.com/am-kantox/vela/master/stuff/vela-48x48.png) Vela
+# ![Vela](https://raw.githubusercontent.com/am-kantox/vela/master/stuff/vela-48x48.png) Vela    [![Kantox ❤ OSS](https://img.shields.io/badge/❤-kantox_oss-informational.svg)](https://kantox.com/)  ![Test](https://github.com/am-kantox/vela/workflows/Test/badge.svg)  ![Dialyzer](https://github.com/am-kantox/vela/workflows/Dialyzer/badge.svg)
 
 **The tiny library to ease handling expiring invalidated cached series**
 
