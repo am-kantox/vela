@@ -285,7 +285,7 @@ defmodule Vela do
   def map(%mod{} = vela, fun) do
     mapped =
       vela
-      |> Map.take(mod.series)
+      |> Map.take(mod.series())
       |> Enum.map(fun)
 
     struct(vela, mapped)
