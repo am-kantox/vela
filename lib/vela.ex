@@ -414,11 +414,14 @@ defmodule Vela do
     |> Enum.zip()
     |> Enum.reduce_while(true, fn
       {{serie, %mod{} = value1}, {serie, %mod{} = value2}}, true ->
-        if (mod.__info__(:functions)[:equal?] == 2 and mod.equal?(value1, value2)) or
-             (mod.__info__(:functions)[:compare] == 2 and mod.compare(value1, value2) == :eq) or
-             value1 == value2,
-           do: {:cont, true},
-           else: {:halt, false}
+        equal? =
+          cond do
+            mod.__info__(:functions)[:equal?] == 2 -> mod.equal?(value1, value2)
+            mod.__info__(:functions)[:compare] == 2 -> mod.compare(value1, value2) == :eq
+            true -> value1 == value2
+          end
+
+        if equal?, do: {:cont, true}, else: {:halt, false}
 
       {{serie, value1}, {serie, value2}}, true ->
         if value1 == value2, do: {:cont, true}, else: {:halt, false}
