@@ -133,6 +133,10 @@ defmodule VelaTest do
   end
 
   test "threshold" do
+    vela = put_in(%Struct2{integers: []}, [:integers], 1000)
+    assert %Struct2{integers: [1000]} = vela
+    assert %Struct2{integers: [1000, 1001]} = put_in(vela, [:integers], 1001)
+
     vela = %Struct2{integers: [1, 3]}
 
     assert %Struct2{integers: [1, 3, 4]} = put_in(vela, [:integers], 4)

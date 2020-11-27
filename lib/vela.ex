@@ -439,7 +439,10 @@ defmodule Vela do
   defp within_threshold?({min, max}, threshold, compare_by) do
     [min, max] = Enum.map([min, max], compare_by)
     band = max - min
-    &(compare_by.(&1) >= min - band * threshold && compare_by.(&1) <= max + band * threshold)
+    min_threshold = if band > 0, do: min - band * threshold, else: min * ((100 - threshold) / 100)
+    max_threshold = if band > 0, do: max + band * threshold, else: max * ((100 + threshold) / 100)
+
+    &(compare_by.(&1) >= min_threshold && compare_by.(&1) <= max_threshold)
   end
 
   defmodule Stubs do
