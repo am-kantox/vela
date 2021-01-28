@@ -80,7 +80,12 @@ defmodule Vela.Macros do
 
       @doc "Returns the config value for the serie `serie`, #{__MODULE__} was declared with, and key"
       @spec config(Vela.serie(), key :: atom(), default :: any()) :: Vela.option()
-      def config(serie, key, default \\ nil), do: Keyword.get(@config[serie], key, default)
+      def config(serie, key, default \\ nil)
+
+      def config(serie, key, %__MODULE__{__meta__: meta}),
+        do: get_in(meta, [serie, key]) || Keyword.get(meta, key, @config[serie][key])
+
+      def config(serie, key, default), do: Keyword.get(@config[serie], key, default)
 
       use Vela.Access, @config
       @behaviour Vela

@@ -2,7 +2,7 @@ defmodule Vela.MixProject do
   use Mix.Project
 
   @app :vela
-  @version "0.9.5"
+  @version "0.11.0"
 
   def project do
     [

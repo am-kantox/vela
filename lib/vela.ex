@@ -327,11 +327,11 @@ defmodule Vela do
   @spec validator!(data :: t(), serie :: serie()) :: validator()
   @doc false
   def validator!(%type{} = data, serie) do
-    validator = type.config(serie)[:validator]
-    compare_by = type.config(serie)[:compare_by]
+    validator = type.config(serie, :validator, data)
+    compare_by = type.config(serie, :compare_by, data)
 
     within_threshold =
-      within_threshold?(Vela.δ(data)[serie], type.config(serie)[:threshold], compare_by)
+      within_threshold?(Vela.δ(data)[serie], type.config(serie, :threshold, data), compare_by)
 
     validator = make_arity_2(validator)
 
@@ -352,7 +352,7 @@ defmodule Vela do
         serie in type.series(),
         {compare_by, comparator} =
           if(is_nil(comparator),
-            do: {type.config(serie, :compare_by), type.config(serie, :comparator)},
+            do: {type.config(serie, :compare_by, vela), type.config(serie, :comparator, vela)},
             else: {&Stubs.itself/1, comparator}
           ) do
       min_max =
@@ -439,7 +439,10 @@ defmodule Vela do
   defp within_threshold?({min, max}, threshold, compare_by) do
     [min, max] = Enum.map([min, max], compare_by)
     band = max - min
-    &(compare_by.(&1) >= min - band * threshold && compare_by.(&1) <= max + band * threshold)
+    min_threshold = if band > 0, do: min - band * threshold, else: min * ((100 - threshold) / 100)
+    max_threshold = if band > 0, do: max + band * threshold, else: max * ((100 + threshold) / 100)
+
+    &(compare_by.(&1) >= min_threshold && compare_by.(&1) <= max_threshold)
   end
 
   defmodule Stubs do

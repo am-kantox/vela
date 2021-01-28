@@ -14,6 +14,7 @@ end
 
 ## Changelog
 
+- **`0.11.0`** — `__meta__` might be now used to overwrite compiled in serie settings
 - **`0.9.5`** — early return the value provided by existing comparison function in `equal?/2`
 - **`0.9.3`** — allow `:atom` and `{GenServer, :on_start}` as type definition
 - **`0.9.0`** — allow a precise type definition of each serie via `type: type()` keyword parameter
