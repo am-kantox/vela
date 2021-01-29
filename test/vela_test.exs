@@ -135,50 +135,51 @@ defmodule VelaTest do
   test "threshold" do
     vela = put_in(%Struct2{integers: []}, [:integers], 1000)
     assert %Struct2{integers: [1000]} = vela
-    assert %Struct2{integers: [1000, 1001]} = put_in(vela, [:integers], 1001)
 
-    vela = %Struct2{integers: [1, 3]}
+    vela = put_in(vela, [:integers], 1001)
+    assert %Struct2{integers: [1000, 1001]} = vela
 
-    assert %Struct2{integers: [1, 3, 4]} = put_in(vela, [:integers], 4)
-    assert %Struct2{integers: [0, 1, 3]} = put_in(vela, [:integers], 0)
+    vela = put_in(vela, [:integers], 995)
+    assert %Struct2{integers: [995, 1000, 1001]} = vela
 
-    assert %Struct2{__errors__: [integers: 5], integers: [1, 3]} = put_in(vela, [:integers], 5)
+    assert %Struct2{__errors__: [integers: 990], integers: [995, 1000, 1001]} =
+             put_in(vela, [:integers], 990)
 
-    assert %Struct2{__errors__: [], integers: [1, 3, 5]} =
-             put_in(%Struct2{vela | __meta__: [threshold: 1.0]}, [:integers], 5)
+    assert %Struct2{__errors__: [], integers: [995, 1000, 1001]} =
+             put_in(%Struct2{vela | __meta__: [threshold: 10.0]}, [:integers], 1100)
   end
 
   test "threshold with extractor" do
     vela = %Struct2{
       maps: [
-        %{date: Date.from_erl!({2020, 7, 2}), number: 1},
-        %{date: Date.from_erl!({2020, 7, 1}), number: 3}
+        %{date: Date.from_erl!({2020, 7, 2}), number: 1000},
+        %{date: Date.from_erl!({2020, 7, 1}), number: 1003}
       ]
     }
 
     maps = [
-      %{date: Date.from_erl!({2020, 6, 30}), number: 4},
-      %{date: Date.from_erl!({2020, 7, 1}), number: 3},
-      %{date: Date.from_erl!({2020, 7, 2}), number: 1}
+      %{date: Date.from_erl!({2020, 6, 30}), number: 1004},
+      %{date: Date.from_erl!({2020, 7, 1}), number: 1003},
+      %{date: Date.from_erl!({2020, 7, 2}), number: 1000}
     ]
 
     assert %Struct2{maps: ^maps} =
-             put_in(vela, [:maps], %{date: Date.from_erl!({2020, 6, 30}), number: 4})
+             put_in(vela, [:maps], %{date: Date.from_erl!({2020, 6, 30}), number: 1004})
 
     maps = [
-      %{date: Date.from_erl!({2020, 7, 1}), number: 3},
-      %{date: Date.from_erl!({2020, 7, 2}), number: 1},
-      %{date: Date.from_erl!({2020, 7, 3}), number: 0}
+      %{date: Date.from_erl!({2020, 7, 1}), number: 1003},
+      %{date: Date.from_erl!({2020, 7, 2}), number: 1000},
+      %{date: Date.from_erl!({2020, 7, 3}), number: 995}
     ]
 
     assert %Struct2{maps: ^maps} =
-             put_in(vela, [:maps], %{date: Date.from_erl!({2020, 7, 3}), number: 0})
+             put_in(vela, [:maps], %{date: Date.from_erl!({2020, 7, 3}), number: 995})
 
-    errors = [maps: %{date: Date.from_erl!({2020, 7, 3}), number: 5}]
+    errors = [maps: %{date: Date.from_erl!({2020, 7, 3}), number: 990}]
 
     assert %Struct2{
              __errors__: ^errors
-           } = put_in(vela, [:maps], %{date: Date.from_erl!({2020, 7, 3}), number: 5})
+           } = put_in(vela, [:maps], %{date: Date.from_erl!({2020, 7, 3}), number: 990})
   end
 
   test "corrector/3" do
