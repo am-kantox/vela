@@ -7,13 +7,14 @@
 ```elixir
 def deps do
   [
-    {:vela, "~> 0.7"}
+    {:vela, "~> 0.12"}
   ]
 end
 ```
 
 ## Changelog
 
+- **`0.12.0`** — `threshold` does not depend on the band anymore
 - **`0.11.0`** — `__meta__` might be now used to overwrite compiled in serie settings
 - **`0.9.5`** — early return the value provided by existing comparison function in `equal?/2`
 - **`0.9.3`** — allow `:atom` and `{GenServer, :on_start}` as type definition
