@@ -159,8 +159,9 @@ defmodule Vela do
 
   alias Vela.Stubs
   import Vela.Macros
+
   @doc false
-  defmacro __using__(opts) when is_list(opts) do
+  def do_using(opts) when is_list(opts) do
     fields = Keyword.keys(opts)
 
     {meta, opts} = Keyword.pop(opts, :mη, [])
@@ -198,40 +199,11 @@ defmodule Vela do
     end
   end
 
+  @doc false
+  defmacro __using__(opts) when is_list(opts), do: Vela.do_using(opts)
+
   defmacro __using__(opts) do
-    quote generated: true,
-          location: :keep,
-          bind_quoted: [opts: opts] do
-      @compile {:inline, series: 0, config: 0, config: 1, config: 2}
-      @after_compile {Vela, :implement_enumerable}
-
-      import Vela.Macros
-
-      {meta, opts} = Keyword.pop(opts, :mη, [])
-      typedefs = for {k, v} <- opts, do: {k, v[:type]}
-      typedef = use_types(typedefs)
-
-      @meta meta
-      @fields Keyword.keys(typedefs)
-
-      @type t :: unquote(typedef)
-      @config use_config(opts)
-      @field_count Enum.count(@fields)
-      fields_index = Enum.with_index(@fields)
-
-      @fields_ordered Enum.sort(
-                        @fields,
-                        Keyword.get(meta, :order_by, &(fields_index[&1] <= fields_index[&2]))
-                      )
-
-      defstruct [
-        {:__errors__, []},
-        {:__meta__, meta}
-        | Enum.zip(@fields_ordered, Stream.cycle([[]]))
-      ]
-
-      main_ast()
-    end
+    quote generated: true, location: :keep, bind_quoted: [opts: opts], do: Vela.do_using(opts)
   end
 
   defmacrop do_implement_enumerable(module) do
