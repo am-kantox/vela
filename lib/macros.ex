@@ -63,4 +63,17 @@ defmodule Vela.Macros do
        | extra_types
      ]}
   end
+
+  defmacro do_typedef(nil, opts) do
+    quote bind_quoted: [opts: opts] do
+      types = for {k, v} <- opts, do: {k, v[:type]}
+      @type t :: unquote(use_types(types))
+    end
+  end
+
+  defmacro do_typedef(typedef, _) do
+    quote do
+      @type t :: unquote(typedef)
+    end
+  end
 end

@@ -164,29 +164,27 @@ defmodule Vela do
   import Vela.Macros
 
   @doc false
-  def do_using(opts) when is_list(opts) do
-    fields = Keyword.keys(opts)
-
-    {meta, opts} = Keyword.pop(opts, :mη, [])
-
-    typedefs = for {k, v} <- opts, do: {k, v[:type]}
-    typedef = use_types(typedefs)
-    opts = for {serie, desc} <- opts, do: {serie, Keyword.delete(desc, :type)}
-
+  def do_def_using(module \\ nil, opts \\ nil, typedef \\ nil) do
     quote generated: true, location: :keep do
+      @me unquote(module) || __MODULE__
+
       @compile {:inline, series: 0, config: 0, config: 1, config: 2}
       @after_compile {Vela, :implement_enumerable}
 
       import Vela.Macros
 
-      @fields unquote(fields)
+      opts = unquote(opts) || @__opts__
 
-      @type t :: unquote(typedef)
-      @config use_config(unquote(opts))
+      do_typedef(unquote(typedef), opts)
+
+      {meta, opts} = Keyword.pop(opts, :mη, [])
+      @meta Keyword.put_new(meta, :state, [])
+
+      @config use_config(opts)
+
+      @fields Keyword.keys(opts)
       @field_count Enum.count(@fields)
       fields_index = Enum.with_index(@fields)
-
-      @meta Keyword.put_new(unquote(meta), :state, [])
 
       @fields_ordered Enum.sort(
                         @fields,
@@ -199,32 +197,32 @@ defmodule Vela do
         | Enum.zip(@fields_ordered, Stream.cycle([[]]))
       ]
 
-      @doc "Returns the initial state of `#{__MODULE__}`, custom options etc"
+      @doc "Returns the initial state of `#{@me}`, custom options etc"
       @spec state(Vela.t()) :: Vela.state()
-      def state(%__MODULE__{__meta__: meta}), do: get_in(meta, [:state])
+      def state(%@me{__meta__: meta}), do: get_in(meta, [:state])
 
-      @doc "Updates the state of of `#{__MODULE__}`"
+      @doc "Updates the state of of `#{@me}`"
       @spec update_state(Vela.t(), (Vela.state() -> Vela.state())) :: Vela.t()
-      def update_state(%__MODULE__{__meta__: meta} = vela, fun) when is_function(fun, 1),
-        do: %__MODULE__{__meta__: update_in(meta, [:state], fun)}
+      def update_state(%@me{__meta__: meta} = vela, fun) when is_function(fun, 1),
+        do: %@me{__meta__: update_in(meta, [:state], fun)}
 
-      @doc "Returns the list of series declared on #{__MODULE__}"
+      @doc "Returns the list of series declared on #{@me}"
       @spec series :: [Vela.serie()]
       def series, do: @fields_ordered
 
-      @doc "Returns the config #{__MODULE__} was declared with"
+      @doc "Returns the config #{@me} was declared with"
       @spec config :: [{atom(), Vela.options()}]
       def config, do: @config
 
-      @doc "Returns the config for the serie `serie`, #{__MODULE__} was declared with"
+      @doc "Returns the config for the serie `serie`, #{@me} was declared with"
       @spec config(Vela.serie()) :: Vela.options()
       def config(serie), do: @config[serie]
 
-      @doc "Returns the config value for the serie `serie`, #{__MODULE__} was declared with, and key"
+      @doc "Returns the config value for the serie `serie`, #{@me} was declared with, and key"
       @spec config(Vela.serie(), key :: atom(), default :: any()) :: Vela.option()
       def config(serie, key, default \\ nil)
 
-      def config(serie, key, %__MODULE__{__meta__: meta}),
+      def config(serie, key, %@me{__meta__: meta}),
         do: get_in(meta, [serie, key]) || Keyword.get(meta, key, @config[serie][key])
 
       def config(serie, key, default), do: Keyword.get(@config[serie], key, default)
@@ -237,24 +235,33 @@ defmodule Vela do
         do: for({serie, [h | _]} <- vela, do: {serie, h})
 
       @impl Vela
-      def purge(%__MODULE__{} = vela, validator \\ nil),
+      def purge(%@me{} = vela, validator \\ nil),
         do: Vela.purge(vela, validator)
 
       @impl Vela
-      def delta(%__MODULE__{} = vela, comparator \\ nil),
+      def delta(%@me{} = vela, comparator \\ nil),
         do: Vela.δ(vela, comparator)
 
       @impl Vela
-      def equal?(%__MODULE__{} = v1, %__MODULE__{} = v2),
+      def equal?(%@me{} = v1, %@me{} = v2),
         do: Vela.equal?(v1, v2)
     end
   end
 
   @doc false
-  defmacro __using__(opts) when is_list(opts), do: Vela.do_using(opts)
+  defmacro __using__(opts) when is_list(opts) do
+    typedefs = for {k, v} <- opts, do: {k, v[:type]}
+    typedef = use_types(typedefs)
+    opts = for {serie, desc} <- opts, do: {serie, Keyword.delete(desc, :type)}
+
+    do_def_using(__CALLER__.module, opts, typedef)
+  end
 
   defmacro __using__(opts) do
-    quote generated: true, location: :keep, bind_quoted: [opts: opts], do: Vela.do_using(opts)
+    quote generated: true, location: :keep do
+      @__opts__ unquote(opts)
+      unquote(Vela.do_def_using())
+    end
   end
 
   defmacrop do_implement_enumerable(module) do
