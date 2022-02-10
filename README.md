@@ -14,6 +14,7 @@ end
 
 ## Changelog
 
+- **`0.13.0`** — `state/1` and `update_state/2` to keep some additional date alongside with `Vela`
 - **`0.12.0`** — `threshold` does not depend on the band anymore
 - **`0.11.0`** — `__meta__` might be now used to overwrite compiled in serie settings
 - **`0.9.5`** — early return the value provided by existing comparison function in `equal?/2`
