@@ -63,48 +63,4 @@ defmodule Vela.Macros do
        | extra_types
      ]}
   end
-
-  defmacro main_ast do
-    quote do
-      @doc "Returns the list of series declared on #{__MODULE__}"
-      @spec series :: [Vela.serie()]
-      def series, do: @fields_ordered
-
-      @doc "Returns the config #{__MODULE__} was declared with"
-      @spec config :: [{atom(), Vela.options()}]
-      def config, do: @config
-
-      @doc "Returns the config for the serie `serie`, #{__MODULE__} was declared with"
-      @spec config(Vela.serie()) :: Vela.options()
-      def config(serie), do: @config[serie]
-
-      @doc "Returns the config value for the serie `serie`, #{__MODULE__} was declared with, and key"
-      @spec config(Vela.serie(), key :: atom(), default :: any()) :: Vela.option()
-      def config(serie, key, default \\ nil)
-
-      def config(serie, key, %__MODULE__{__meta__: meta}),
-        do: get_in(meta, [serie, key]) || Keyword.get(meta, key, @config[serie][key])
-
-      def config(serie, key, default), do: Keyword.get(@config[serie], key, default)
-
-      use Vela.Access, @config
-      @behaviour Vela
-
-      @impl Vela
-      def slice(vela),
-        do: for({serie, [h | _]} <- vela, do: {serie, h})
-
-      @impl Vela
-      def purge(%__MODULE__{} = vela, validator \\ nil),
-        do: Vela.purge(vela, validator)
-
-      @impl Vela
-      def delta(%__MODULE__{} = vela, comparator \\ nil),
-        do: Vela.δ(vela, comparator)
-
-      @impl Vela
-      def equal?(%__MODULE__{} = v1, %__MODULE__{} = v2),
-        do: Vela.equal?(v1, v2)
-    end
-  end
 end

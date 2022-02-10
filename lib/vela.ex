@@ -74,6 +74,9 @@ defmodule Vela do
   @typedoc "Represents a key-value pair in errors and unmatched"
   @type kv :: {serie(), value()}
 
+  @typedoc "Represents the internal state aka per-vela propery container"
+  @type state :: Access.t()
+
   @typedoc """
   The type of validator function to be passed as `:validator` keyword parameter
     to the series.
@@ -102,7 +105,7 @@ defmodule Vela do
   @type t :: %{
           :__struct__ => atom(),
           :__errors__ => [kv()],
-          :__meta__ => keyword(),
+          :__meta__ => Access.t(),
           optional(serie()) => [value()]
         }
 
@@ -176,13 +179,14 @@ defmodule Vela do
 
       import Vela.Macros
 
-      @meta unquote(meta)
       @fields unquote(fields)
 
       @type t :: unquote(typedef)
       @config use_config(unquote(opts))
       @field_count Enum.count(@fields)
       fields_index = Enum.with_index(@fields)
+
+      @meta Keyword.put_new(unquote(meta), :state, [])
 
       @fields_ordered Enum.sort(
                         @fields,
@@ -195,7 +199,54 @@ defmodule Vela do
         | Enum.zip(@fields_ordered, Stream.cycle([[]]))
       ]
 
-      main_ast()
+      @doc "Returns the initial state of `#{__MODULE__}`, custom options etc"
+      @spec state(Vela.t()) :: Vela.state()
+      def state(%__MODULE__{__meta__: meta}), do: get_in(meta, [:state])
+
+      @doc "Updates the state of of `#{__MODULE__}`"
+      @spec update_state(Vela.t(), (Vela.state() -> Vela.state())) :: Vela.t()
+      def update_state(%__MODULE__{__meta__: meta} = vela, fun) when is_function(fun, 1),
+        do: %__MODULE__{__meta__: update_in(meta, [:state], fun)}
+
+      @doc "Returns the list of series declared on #{__MODULE__}"
+      @spec series :: [Vela.serie()]
+      def series, do: @fields_ordered
+
+      @doc "Returns the config #{__MODULE__} was declared with"
+      @spec config :: [{atom(), Vela.options()}]
+      def config, do: @config
+
+      @doc "Returns the config for the serie `serie`, #{__MODULE__} was declared with"
+      @spec config(Vela.serie()) :: Vela.options()
+      def config(serie), do: @config[serie]
+
+      @doc "Returns the config value for the serie `serie`, #{__MODULE__} was declared with, and key"
+      @spec config(Vela.serie(), key :: atom(), default :: any()) :: Vela.option()
+      def config(serie, key, default \\ nil)
+
+      def config(serie, key, %__MODULE__{__meta__: meta}),
+        do: get_in(meta, [serie, key]) || Keyword.get(meta, key, @config[serie][key])
+
+      def config(serie, key, default), do: Keyword.get(@config[serie], key, default)
+
+      use Vela.Access, @config
+      @behaviour Vela
+
+      @impl Vela
+      def slice(vela),
+        do: for({serie, [h | _]} <- vela, do: {serie, h})
+
+      @impl Vela
+      def purge(%__MODULE__{} = vela, validator \\ nil),
+        do: Vela.purge(vela, validator)
+
+      @impl Vela
+      def delta(%__MODULE__{} = vela, comparator \\ nil),
+        do: Vela.δ(vela, comparator)
+
+      @impl Vela
+      def equal?(%__MODULE__{} = v1, %__MODULE__{} = v2),
+        do: Vela.equal?(v1, v2)
     end
   end
 

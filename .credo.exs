@@ -15,7 +15,7 @@
         {Credo.Check.Design.AliasUsage, exit_status: 0},
         {Credo.Check.Design.TagTODO, exit_status: 0},
         {Credo.Check.Design.TagFIXME, exit_status: 0},
-        {Credo.Check.Refactor.CyclomaticComplexity, max_complexity: 13},
+        {Credo.Check.Refactor.CyclomaticComplexity, max_complexity: 21},
         {Credo.Check.Warning.ApplicationConfigInModuleAttribute, false}
       ]
     }

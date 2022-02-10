@@ -4,7 +4,14 @@ defmodule VelaTest do
   alias Test.Vela.{Struct, Struct2}
 
   setup_all do
-    [data: %Test.Vela.Struct{series1: [65, 66, 67], series2: [], series3: [43, 42]}]
+    [data: %Struct{series1: [65, 66, 67], series2: [], series3: [43, 42]}]
+  end
+
+  test "state/1, update_state/2", %{data: data} do
+    assert Struct.state(data) == []
+
+    assert %Struct{__meta__: [state: [foo: :bar]]} =
+             Struct.update_state(data, fn state -> Keyword.put(state, :foo, :bar) end)
   end
 
   test "get_in/2", %{data: data} do
