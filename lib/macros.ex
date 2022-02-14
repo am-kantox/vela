@@ -39,17 +39,17 @@ defmodule Vela.Macros do
           {k, [{{:., [], [{:__aliases__, [alias: false], [:Vela]}, :value]}, [], []}]}
 
         {k, type} when is_atom(type) ->
-          {k, {type, [], []}}
+          {k, [{type, [], []}]}
 
         {k, {{_, _, _} = module, type}} ->
-          {k, {{:., [], [module, type]}, [], []}}
+          {k, [{{:., [], [module, type]}, [], []}]}
 
         {k, {module, type}} when is_atom(module) and is_atom(type) ->
           modules = module |> Module.split() |> Enum.map(&:"#{&1}")
-          {k, {{:., [], [{:__aliases__, [alias: false], modules}, type]}, [], []}}
+          {k, [{{:., [], [{:__aliases__, [alias: false], modules}, type]}, [], []}]}
 
         {k, v} ->
-          {k, v}
+          {k, [v]}
       end)
 
     {:%{}, [],
@@ -59,7 +59,7 @@ defmodule Vela.Macros do
         [
           {{:., [], [{:__aliases__, [alias: false], [:Vela]}, :kv]}, [], []}
         ]},
-       {:__meta__, {:keyword, [], []}}
+       {:__meta__, {{:., [], [{:__aliases__, [alias: false], [:Access]}, :t]}, [], []}}
        | extra_types
      ]}
   end
