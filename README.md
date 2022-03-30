@@ -14,6 +14,7 @@ end
 
 ## Changelog
 
+- **`0.14.0`** — `average/2` to produce a keyword of `{serie, average}` values
 - **`0.13.1`** — `state/1` and `update_state/2` to keep some additional date alongside with `Vela`
 - **`0.12.0`** — `threshold` does not depend on the band anymore
 - **`0.11.0`** — `__meta__` might be now used to overwrite compiled in serie settings
