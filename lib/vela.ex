@@ -130,16 +130,33 @@ defmodule Vela do
 
   _Example:_
 
-  ```elixir
-  defmodule AB do
-    use Vela, a: [], b: []
-  end
-  AB.slice(struct(AB, [a: [1, 2], b: [3, 4]]))
-
-  #⇒ [a: 1, b: 3]
-  ```
+      iex> defmodule AB do
+      ...>   use Vela, a: [], b: []
+      ...> end
+      ...> AB.slice(struct(AB, [a: [1, 2], b: [3]]))
+      [a: 1, b: 3]
   """
   @callback slice(t()) :: [kv()]
+
+  @doc """
+  Returns a keyword with series as keys and the average value as a value
+
+  _Example:_
+
+      iex> defmodule XY do
+      ...>   use Vela, x: [], y: []
+      ...> end
+      ...> XY.average(struct(XY, x: [1, 2, 3], y: [5, 7, 9]), &(Enum.sum(&1) / length(&1)))
+      [x: 2.0, y: 7.0]
+      ...> defmodule Averager do
+      ...>   def average(values), do: Enum.sum(values) / length(values)
+      ...> end
+      ...> XY.average(struct(XY, x: [1, 2, 3], y: [5, 7, 9]), Averager)
+      [x: 2.0, y: 7.0]
+  ```
+  """
+  @doc since: "0.14.0"
+  @callback average(t(), ([value()] -> value()) | module()) :: [kv()]
 
   @doc """
   Removes obsoleted elements from the series using the validator given as a second parameter,
@@ -233,6 +250,19 @@ defmodule Vela do
       @impl Vela
       def slice(vela),
         do: for({serie, [h | _]} <- vela, do: {serie, h})
+
+      @impl Vela
+      def average(vela, averager) do
+        for {serie, values} <- vela do
+          value =
+            case averager do
+              f when is_function(f, 1) -> f.(values)
+              m when is_atom(m) -> m.average(values)
+            end
+
+          {serie, value}
+        end
+      end
 
       @impl Vela
       def purge(%@me{} = vela, validator \\ nil),
