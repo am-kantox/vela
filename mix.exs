@@ -9,7 +9,7 @@ defmodule Vela.MixProject do
       app: @app,
       name: "Vela",
       version: @version,
-      elixir: "~> 1.9",
+      elixir: "~> 1.10",
       compilers: compilers(Mix.env()),
       elixirc_paths: elixirc_paths(Mix.env()),
       consolidate_protocols: Mix.env() not in [:dev, :test],

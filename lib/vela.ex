@@ -153,7 +153,6 @@ defmodule Vela do
       ...> end
       ...> XY.average(struct(XY, x: [1, 2, 3], y: [5, 7, 9]), Averager)
       [x: 2.0, y: 7.0]
-  ```
   """
   @doc since: "0.14.0"
   @callback average(t(), ([value()] -> value()) | module()) :: [kv()]
