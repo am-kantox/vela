@@ -3,8 +3,8 @@ defmodule Vela.Access do
 
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do
-      @history_limit Application.get_env(:vela, :history_limit, 5)
-      @error_limit Application.get_env(:vela, :error_limit, 5)
+      @history_limit Application.compile_env(:vela, :history_limit, 5)
+      @error_limit Application.compile_env(:vela, :error_limit, 5)
 
       @behaviour Elixir.Access
 
