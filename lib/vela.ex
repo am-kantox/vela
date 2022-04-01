@@ -25,7 +25,7 @@ defmodule Vela do
     or `:error` if the value cannot be corrected and should be nevertheless rejected
   - `errors` — number of errors to keep (default: `5`)
 
-  Also, Vela accepts `:mη` keyword parameter for the cases when the consumer needs
+  Also, Vela accepts `:__meta__` keyword parameter for the cases when the consumer needs
   the very custom meta to be passed to the struct.
 
   `Vela` implements `Access` behaviour.
@@ -194,7 +194,7 @@ defmodule Vela do
 
       do_typedef(unquote(typedef), opts)
 
-      {meta, opts} = Keyword.pop(opts, :mη, [])
+      {meta, opts} = Keyword.pop(opts, :__meta__, [])
       @meta Keyword.put_new(meta, :state, [])
 
       @config use_config(opts)
