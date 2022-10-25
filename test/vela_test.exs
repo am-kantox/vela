@@ -152,6 +152,12 @@ defmodule VelaTest do
     assert %Struct2{__errors__: [integers: 990], integers: [995, 1000, 1001]} =
              put_in(vela, [:integers], 990)
 
+    assert %Struct2{__errors__: [integers: 1100], integers: [995, 1000, 1001]} =
+             put_in(vela, [:integers], 1100)
+
+    assert %Struct2{__errors__: [integers: 1100], integers: [995, 1000, 1001]} =
+             put_in(%Struct2{vela | __meta__: [threshold: 9.0]}, [:integers], 1100)
+
     assert %Struct2{__errors__: [], integers: [995, 1000, 1001]} =
              put_in(%Struct2{vela | __meta__: [threshold: 10.0]}, [:integers], 1100)
   end

@@ -247,11 +247,13 @@ defmodule Vela do
       @behaviour Vela
 
       @impl Vela
-      def slice(vela),
+      def slice(%@me{} = vela),
         do: for({serie, [h | _]} <- vela, do: {serie, h})
 
+      def slice(_not_wellformed_vela), do: []
+
       @impl Vela
-      def average(vela, averager) do
+      def average(%@me{} = vela, averager) do
         for {serie, values} <- vela do
           value =
             case averager do
@@ -262,6 +264,8 @@ defmodule Vela do
           {serie, value}
         end
       end
+
+      def average(_not_wellformed_vela, _averager), do: nil
 
       @impl Vela
       def purge(%@me{} = vela, validator \\ nil),
@@ -500,7 +504,7 @@ defmodule Vela do
     min_threshold = min * ((100 - threshold) / 100)
     max_threshold = max * ((100 + threshold) / 100)
 
-    &(compare_by.(&1) >= min_threshold && compare_by.(&1) <= max_threshold)
+    &(compare_by.(&1) >= min_threshold and compare_by.(&1) <= max_threshold)
   end
 
   defmodule Stubs do
