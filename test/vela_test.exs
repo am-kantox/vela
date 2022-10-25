@@ -134,12 +134,18 @@ defmodule VelaTest do
     dt4 = Date.add(dt1, -2)
 
     vela = %Struct2{integers: [1, 2, 5, 4, 3], dates: [dt1, dt2, dt3, dt4]}
-    assert Vela.δ(vela) == [integers: {1, 5}, dates: {dt4, dt2}, maps: {nil, nil}]
+
+    assert Vela.δ(vela) == [
+             floats: {nil, nil},
+             integers: {1, 5},
+             dates: {dt4, dt2},
+             maps: {nil, nil}
+           ]
 
     assert Vela.δ(data) == [series1: {65, 67}, series2: {nil, nil}, series3: {42, 43}]
   end
 
-  test "threshold" do
+  test "threshold integers" do
     vela = put_in(%Struct2{integers: []}, [:integers], 1000)
     assert %Struct2{integers: [1000]} = vela
 
@@ -160,6 +166,16 @@ defmodule VelaTest do
 
     assert %Struct2{__errors__: [], integers: [995, 1000, 1001]} =
              put_in(%Struct2{vela | __meta__: [threshold: 10.0]}, [:integers], 1100)
+  end
+
+  test "threshold floats" do
+    vela = put_in(%Struct2{floats: []}, [:floats], 1.0)
+    assert %Struct2{floats: [1.0]} = vela
+
+    assert %Struct2{floats: [100.0, 1.0]} = put_in(vela, [:floats], 100.0)
+
+    assert %Struct2{__errors__: [floats: 100.0], floats: [1.0]} =
+             put_in(%Struct2{vela | __meta__: [threshold: 1.0]}, [:floats], 100.0)
   end
 
   test "threshold with extractor" do

@@ -62,6 +62,9 @@ defmodule Test.Vela.Struct2 do
   import Test.Vela.Struct2Checkers
 
   use Vela,
+    floats: [
+      type: {Nested.Module.T, :int}
+    ],
     integers: [
       type: {Nested.Module.T, :int},
       limit: 3,
