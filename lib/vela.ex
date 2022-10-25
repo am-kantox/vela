@@ -238,8 +238,14 @@ defmodule Vela do
       @spec config(Vela.serie(), key :: atom(), default :: any()) :: Vela.option()
       def config(serie, key, default \\ nil)
 
-      def config(serie, key, %@me{__meta__: meta}),
-        do: get_in(meta, [serie, key]) || Keyword.get(meta, key, @config[serie][key])
+      def config(serie, key, %@me{__meta__: meta}) do
+        get_in(meta, [serie, key]) ||
+          Keyword.get_lazy(meta, key, fn ->
+            get_in(meta, [:state, serie, key]) ||
+              get_in(meta, [:state, key]) ||
+              @config[serie][key]
+          end)
+      end
 
       def config(serie, key, default), do: Keyword.get(@config[serie], key, default)
 

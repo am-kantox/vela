@@ -176,6 +176,9 @@ defmodule VelaTest do
 
     assert %Struct2{__errors__: [floats: 100.0], floats: [1.0]} =
              put_in(%Struct2{vela | __meta__: [threshold: 1.0]}, [:floats], 100.0)
+
+    assert %Struct2{__errors__: [floats: 100.0], floats: [1.0]} =
+             put_in(%Struct2{vela | __meta__: [state: [threshold: 1.0]]}, [:floats], 100.0)
   end
 
   test "threshold with extractor" do
