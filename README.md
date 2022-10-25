@@ -14,6 +14,7 @@ end
 
 ## Changelog
 
+- **`0.15.2`** — less restrictive `slice/2`, accepting malformed velas
 - **`0.15.0`** — `:mη` keyword parameter in a call to `use Vela` has been renamed to `:__meta__` as _Elixir v1.14_ does not support mixed scripts (meh)
 - **`0.14.0`** — `average/2` to produce a keyword of `{serie, average}` values
 - **`0.13.1`** — `state/1` and `update_state/2` to keep some additional date alongside with `Vela`
