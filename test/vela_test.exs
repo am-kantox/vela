@@ -94,28 +94,42 @@ defmodule VelaTest do
   end
 
   test "equal?/2", %{data: %mod{} = data} do
-    assert mod.equal?(data, %Struct{
-             series1: [65, 66, 67],
-             series2: [],
-             series3: [43, 42]
-           })
+    for mod <- [mod, Vela] do
+      assert mod.equal?(data, %Struct{
+               series1: [65, 66, 67],
+               series2: [],
+               series3: [43, 42]
+             })
 
-    refute mod.equal?(data, %Struct{series1: [65, 66], series2: [], series3: [43, 42]})
-    refute mod.equal?(data, %Struct{series1: [], series2: [1], series3: [43, 42]})
+      refute mod.equal?(data, %Struct{series1: [65, 66], series2: [], series3: [43, 42]})
+      refute mod.equal?(data, %Struct{series1: [], series2: [1], series3: [43, 42]})
 
-    refute mod.equal?(data, %Struct{
-             series1: [65, 66, 67],
-             series2: [1],
-             series3: [43, 42]
-           })
+      refute mod.equal?(data, %Struct{
+               series1: [65, 66, 67],
+               series2: [1],
+               series3: [43, 42]
+             })
 
-    dt1 = DateTime.utc_now()
-    dt2 = DateTime.add(dt1, 0)
-    dt3 = DateTime.add(dt1, 1)
+      dt1 = DateTime.utc_now()
+      dt2 = DateTime.add(dt1, 0)
+      dt3 = DateTime.add(dt1, 1)
 
-    assert mod.equal?(%Struct{series1: [dt1]}, %Struct{series1: [dt1]})
-    assert mod.equal?(%Struct{series1: [dt1]}, %Struct{series1: [dt2]})
-    refute mod.equal?(%Struct{series1: [dt1]}, %Struct{series1: [dt3]})
+      assert mod.equal?(%Struct{series1: [dt1]}, %Struct{series1: [dt1]})
+      assert mod.equal?(%Struct{series1: [dt1]}, %Struct{series1: [dt2]})
+      refute mod.equal?(%Struct{series1: [dt1]}, %Struct{series1: [dt3]})
+    end
+  end
+
+  test "empty?/1, empty!/1", %{data: %mod{} = data} do
+    for mod <- [mod, Vela] do
+      refute mod.empty?(data)
+
+      empty = Vela.empty!(data)
+      assert mod.empty?(empty)
+
+      assert mod.equal?(empty, %Struct{series1: [], series2: [], series3: []})
+      refute mod.equal?(data, empty)
+    end
   end
 
   test "sort/3", %{data: %_mod{} = data} do

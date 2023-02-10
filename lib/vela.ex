@@ -131,9 +131,9 @@ defmodule Vela do
   _Example:_
 
       iex> defmodule AB do
-      ...>   use Vela, a: [], b: []
+      ...>   use Vela, a: [], b: [], c: []
       ...> end
-      ...> AB.slice(struct(AB, [a: [1, 2], b: [3]]))
+      ...> AB.slice(struct(AB, [a: [1, 2], b: [3], c: []]))
       [a: 1, b: 3]
   """
   @callback slice(t()) :: [kv()]
@@ -256,7 +256,15 @@ defmodule Vela do
       def slice(%@me{} = vela),
         do: for({serie, [h | _]} <- vela, do: {serie, h})
 
-      def slice(_not_wellformed_vela), do: []
+      @doc false
+      @spec empty?(Vela.t()) :: boolean()
+      def empty?(%@me{} = vela),
+        do: Enum.all?(vela, &match?({_, []}, &1))
+
+      @doc false
+      @spec empty!(Vela.t()) :: Vela.t()
+      def empty!(%@me{} = vela),
+        do: Vela.map(vela, fn {serie, _} -> {serie, []} end)
 
       @impl Vela
       def average(%@me{} = vela, averager) do
@@ -344,7 +352,7 @@ defmodule Vela do
   end
 
   @doc false
-  def implement_enumerable(%Macro.Env{module: module}, _bytecode),
+  def implement_enumerable(%Macro.Env{module: module}, bytecode),
     do: do_implement_enumerable(module)
 
   @spec map(vela :: t(), (kv() -> kv())) :: t()
@@ -475,7 +483,18 @@ defmodule Vela do
 
   def equal?(_, _), do: false
 
+  @doc "Returns `true` if the `Vela` is empty, `false` otherwise."
+  @spec empty?(Vela.t()) :: boolean()
+  def empty?(%type{} = vela), do: type.empty?(vela)
+
+  @doc "Empties the `Vela` given."
+  @spec empty!(Vela.t()) :: Vela.t()
+  def empty!(%type{} = vela), do: type.empty!(vela)
+
   @spec do_equal?(kw1 :: [Vela.kv()], kw2 :: [Vela.kv()]) :: boolean()
+  defp do_equal?([], []), do: true
+  defp do_equal?([], _), do: false
+  defp do_equal?(_, []), do: false
   defp do_equal?(kw1, kw2) when length(kw1) != length(kw2), do: false
 
   defp do_equal?(kw1, kw2) do
