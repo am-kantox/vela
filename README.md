@@ -14,6 +14,7 @@ end
 
 ## Changelog
 
+- **`0.16.0`** — `Vela.empty?/1`, `Vela.empty!/1` and some performance improvements in `Vela.equal?/2`
 - **`0.15.3`** — allow all metas to reside in `state`
 - **`0.15.2`** — less restrictive `slice/2`, accepting malformed velas
 - **`0.15.0`** — `:mη` keyword parameter in a call to `use Vela` has been renamed to `:__meta__` as _Elixir v1.14_ does not support mixed scripts (meh)
