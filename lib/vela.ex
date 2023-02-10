@@ -266,6 +266,18 @@ defmodule Vela do
       def empty!(%@me{} = vela),
         do: Vela.map(vela, fn {serie, _} -> {serie, []} end)
 
+      @doc false
+      @spec merge(Vela.t(), Vela.t(), (Vela.serie(), Vela.value(), Vela.value() -> Vela.value())) ::
+              Vela.t()
+      def merge(%@me{} = v1, %@me{} = v2, resolver) do
+        kvs =
+          Enum.zip_with(v1, v2, fn {serie, v1}, {serie, v2} ->
+            {serie, resolver.(serie, v1, v2)}
+          end)
+
+        struct(v1, kvs)
+      end
+
       @impl Vela
       def average(%@me{} = vela, averager) do
         for {serie, values} <- vela do
@@ -490,6 +502,15 @@ defmodule Vela do
   @doc "Empties the `Vela` given."
   @spec empty!(Vela.t()) :: Vela.t()
   def empty!(%type{} = vela), do: type.empty!(vela)
+
+  @doc """
+  Merges two `Vela`s given using `resolver/3` function.
+
+  This function does not allow merging metas, the first argument wins.
+  """
+  @spec merge(Vela.t(), Vela.t(), (Vela.serie(), Vela.value(), Vela.value() -> Vela.value())) ::
+          Vela.t()
+  def merge(%type{} = v1, %type{} = v2, resolver), do: type.merge(v1, v2, resolver)
 
   @spec do_equal?(kw1 :: [Vela.kv()], kw2 :: [Vela.kv()]) :: boolean()
   defp do_equal?([], []), do: true

@@ -120,6 +120,18 @@ defmodule VelaTest do
     end
   end
 
+  test "merge/3", %{data: %mod{} = data} do
+    for mod <- [mod, Vela] do
+      merged = mod.merge(data, data, fn _k, v1, v2 -> v1 ++ v2 end)
+
+      assert mod.equal?(merged, %Struct{
+               series1: [65, 66, 67, 65, 66, 67],
+               series2: [],
+               series3: [43, 42, 43, 42]
+             })
+    end
+  end
+
   test "empty?/1, empty!/1", %{data: %mod{} = data} do
     for mod <- [mod, Vela] do
       refute mod.empty?(data)
