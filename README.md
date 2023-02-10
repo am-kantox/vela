@@ -14,6 +14,7 @@ end
 
 ## Changelog
 
+- **`0.16.1`** — `Vela.merge/3`
 - **`0.16.0`** — `Vela.empty?/1`, `Vela.empty!/1` and some performance improvements in `Vela.equal?/2`
 - **`0.15.3`** — allow all metas to reside in `state`
 - **`0.15.2`** — less restrictive `slice/2`, accepting malformed velas
