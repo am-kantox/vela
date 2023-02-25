@@ -32,25 +32,28 @@ defmodule Vela.Macros do
     end
   end
 
+  defp extra_types(types) when is_list(types) do
+    Enum.map(types, fn
+      {k, nil} ->
+        {k, [{{:., [], [{:__aliases__, [alias: false], [:Vela]}, :value]}, [], []}]}
+
+      {k, type} when is_atom(type) ->
+        {k, [{type, [], []}]}
+
+      {k, {{_, _, _} = module, type}} ->
+        {k, [{{:., [], [module, type]}, [], []}]}
+
+      {k, {module, type}} when is_atom(module) and is_atom(type) ->
+        modules = module |> Module.split() |> Enum.map(&:"#{&1}")
+        {k, [{{:., [], [{:__aliases__, [alias: false], modules}, type]}, [], []}]}
+
+      {k, v} ->
+        {k, [v]}
+    end)
+  end
+
   def use_types(extra_types) when is_list(extra_types) do
-    extra_types =
-      Enum.map(extra_types, fn
-        {k, nil} ->
-          {k, [{{:., [], [{:__aliases__, [alias: false], [:Vela]}, :value]}, [], []}]}
-
-        {k, type} when is_atom(type) ->
-          {k, [{type, [], []}]}
-
-        {k, {{_, _, _} = module, type}} ->
-          {k, [{{:., [], [module, type]}, [], []}]}
-
-        {k, {module, type}} when is_atom(module) and is_atom(type) ->
-          modules = module |> Module.split() |> Enum.map(&:"#{&1}")
-          {k, [{{:., [], [{:__aliases__, [alias: false], modules}, type]}, [], []}]}
-
-        {k, v} ->
-          {k, [v]}
-      end)
+    extra_types = extra_types(extra_types)
 
     {:%{}, [],
      [
@@ -64,16 +67,32 @@ defmodule Vela.Macros do
      ]}
   end
 
+  def slice_types(types) do
+    types
+    |> extra_types()
+    |> Enum.reverse()
+    |> Enum.reduce(&{:|, [], [&1, &2]})
+  end
+
   defmacro do_typedef(nil, opts) do
     quote bind_quoted: [opts: opts] do
       types = for {k, v} <- opts, do: {k, v[:type]}
       @type t :: unquote(use_types(types))
+      @type serie_slice :: unquote(slice_types(types))
+      @type slice :: [serie_slice()]
     end
   end
 
-  defmacro do_typedef(typedef, _) do
-    quote do
-      @type t :: unquote(typedef)
-    end
+  defmacro do_typedef(typedef, opts) do
+    [
+      quote do
+        @type t :: unquote(typedef)
+      end,
+      quote bind_quoted: [opts: opts] do
+        types = for {k, v} <- opts, do: {k, v[:type]}
+        @type serie_slice :: unquote(slice_types(types))
+        @type slice :: [serie_slice()]
+      end
+    ]
   end
 end

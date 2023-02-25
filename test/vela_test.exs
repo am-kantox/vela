@@ -21,17 +21,17 @@ defmodule VelaTest do
   end
 
   test "put_in/3", %{data: data} do
-    assert %Struct{series1: 'DAB'} = put_in(data, [:series1], 68)
-    assert %Struct{series1: 'DAB'} = Vela.put(data, :series1, 68)
+    assert %Struct{series1: ~c"DAB"} = put_in(data, [:series1], 68)
+    assert %Struct{series1: ~c"DAB"} = Vela.put(data, :series1, 68)
 
-    assert %Struct{__errors__: [series1: -68], series1: 'ABC', series2: []} =
+    assert %Struct{__errors__: [series1: -68], series1: ~c"ABC", series2: []} =
              put_in(data, [:series1], -68)
 
-    assert %Struct{__errors__: [series1: -68], series1: 'ABC', series2: []} =
+    assert %Struct{__errors__: [series1: -68], series1: ~c"ABC", series2: []} =
              Vela.put(data, :series1, -68)
 
-    assert %Struct{series2: ''} = put_in(data, [:series2], 68)
-    assert %Struct{series2: ''} = Vela.put(data, :series2, 68)
+    assert %Struct{series2: ~c""} = put_in(data, [:series2], 68)
+    assert %Struct{series2: ~c""} = Vela.put(data, :series2, 68)
 
     assert %Struct{series2: [-4, -3]} =
              data
@@ -51,9 +51,9 @@ defmodule VelaTest do
   end
 
   test "pop_in/3", %{data: data} do
-    assert {65, %Struct{series1: 'BC'}} = pop_in(data, [:series1])
+    assert {65, %Struct{series1: ~c"BC"}} = pop_in(data, [:series1])
 
-    assert {nil, %Struct{series2: ''}} = pop_in(data, [:series2])
+    assert {nil, %Struct{series2: ~c""}} = pop_in(data, [:series2])
 
     assert :ok =
              with(
@@ -71,13 +71,13 @@ defmodule VelaTest do
 
   test "Enumerable implementation", %{data: data} do
     assert Enum.map(data, fn {serie, list} -> {serie, Enum.map(list, &(&1 + 1))} end) ==
-             [series1: 'BCD', series2: [], series3: ',+']
+             [series1: ~c"BCD", series2: [], series3: ~c",+"]
 
     assert Vela.map(data, fn {serie, list} -> {serie, Enum.map(list, &(&1 + 1))} end) ==
              %Struct{
-               series1: 'BCD',
+               series1: ~c"BCD",
                series2: [],
-               series3: ',+'
+               series3: ~c",+"
              }
 
     assert Vela.flat_map(data) ==
@@ -87,9 +87,9 @@ defmodule VelaTest do
   test "purge/2", %{data: %mod{} = data} do
     assert mod.purge(data, fn _serie, value -> value != 66 end) ==
              %Struct{
-               series1: 'AC',
+               series1: ~c"AC",
                series2: [],
-               series3: '+*'
+               series3: ~c"+*"
              }
   end
 

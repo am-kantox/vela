@@ -74,7 +74,7 @@ defmodule Vela do
   @typedoc "Represents a key-value pair in errors and unmatched"
   @type kv :: {serie(), value()}
 
-  @typedoc "Represents the internal state aka per-vela propery container"
+  @typedoc "Represents the internal state aka per-vela property container"
   @type state :: Access.t()
 
   @typedoc """
@@ -105,7 +105,7 @@ defmodule Vela do
   @type t :: %{
           :__struct__ => atom(),
           :__errors__ => [kv()],
-          :__meta__ => Access.t(),
+          :__meta__ => state(),
           optional(serie()) => [value()]
         }
 
@@ -136,7 +136,7 @@ defmodule Vela do
       ...> AB.slice(struct(AB, [a: [1, 2], b: [3], c: []]))
       [a: 1, b: 3]
   """
-  @callback slice(t()) :: [kv()]
+  @callback slice(vela :: t()) :: [kv()]
 
   @doc """
   Returns a keyword with series as keys and the average value as a value
@@ -155,24 +155,24 @@ defmodule Vela do
       [x: 2.0, y: 7.0]
   """
   @doc since: "0.14.0"
-  @callback average(t(), ([value()] -> value()) | module()) :: [kv()]
+  @callback average(vela :: t(), averager :: ([value()] -> value()) | module()) :: [kv()]
 
   @doc """
   Removes obsoleted elements from the series using the validator given as a second parameter,
     or a default validator for this serie.
   """
-  @callback purge(t(), nil | validator()) :: t()
+  @callback purge(vela :: t(), validator :: nil | validator()) :: t()
 
   @doc """
   Returns `{min, max}` tuple for each serie, using the comparator given as a second parameter,
     or a default comparator for this serie.
   """
-  @callback delta(t(), nil | (serie(), value(), value() -> boolean())) :: [
+  @callback delta(vela :: t(), comparator :: nil | (serie(), value(), value() -> boolean())) :: [
               {atom(), {value(), value()}}
             ]
 
   @doc "Checks two velas given as an input for equality"
-  @callback equal?(t(), t()) :: boolean()
+  @callback equal?(vela1 :: t(), vela2 :: t()) :: boolean()
 
   use Boundary, exports: [Access, AccessError, Stubs, Macros, Validator]
 
@@ -217,24 +217,29 @@ defmodule Vela do
       @spec state(Vela.t()) :: Vela.state()
       def state(%@me{__meta__: meta}), do: get_in(meta, [:state])
 
-      @doc "Updates the state of of `#{@me}`"
-      @spec update_state(Vela.t(), (Vela.state() -> Vela.state())) :: Vela.t()
-      def update_state(%@me{__meta__: meta} = vela, fun) when is_function(fun, 1),
-        do: %@me{__meta__: update_in(meta, [:state], fun)}
+      @doc false
+      @spec update_meta(Vela.t(), [atom()], (any() -> any())) :: Vela.t()
+      def update_meta(%@me{__meta__: meta} = vela, path, fun) when is_function(fun, 1),
+        do: %@me{__meta__: update_in(meta, path, fun)}
 
-      @doc "Returns the list of series declared on #{@me}"
+      @doc "Updates the internal state of `#{@me}`"
+      @spec update_state(Vela.t(), (Vela.state() -> Vela.state())) :: Vela.t()
+      def update_state(%@me{} = vela, fun) when is_function(fun, 1),
+        do: update_meta(vela, [:state], fun)
+
+      @doc "Returns the list of series declared on `#{@me}`"
       @spec series :: [Vela.serie()]
       def series, do: @fields_ordered
 
-      @doc "Returns the config #{@me} was declared with"
+      @doc "Returns the config `#{@me}` was declared with"
       @spec config :: [{atom(), Vela.options()}]
       def config, do: @config
 
-      @doc "Returns the config for the serie `serie`, #{@me} was declared with"
+      @doc false
       @spec config(Vela.serie()) :: Vela.options()
       def config(serie), do: @config[serie]
 
-      @doc "Returns the config value for the serie `serie`, #{@me} was declared with, and key"
+      @doc false
       @spec config(Vela.serie(), key :: atom(), default :: any()) :: Vela.option()
       def config(serie, key, default \\ nil)
 
@@ -253,20 +258,40 @@ defmodule Vela do
       @behaviour Vela
 
       @impl Vela
+      @doc """
+      Implementation of `c:Vela.slice/1`.
+
+      Returns a slice of all series as `keyword()` in format `{Vela.serie(), Vela.value()}`,
+      if the series has no values, it’s not included into result.
+      """
       def slice(%@me{} = vela),
         do: for({serie, [h | _]} <- vela, do: {serie, h})
 
-      @doc false
+      @doc """
+      Returns `true` if there are no values in all series, `false` otherwise.
+      More performant implementation of `slice(vela) == []`.
+
+      _See:_ `Vela.empty?/1`.
+      """
       @spec empty?(Vela.t()) :: boolean()
       def empty?(%@me{} = vela),
         do: Enum.all?(vela, &match?({_, []}, &1))
 
-      @doc false
+      @doc """
+      Empties the `Vela` given as an argument, preserving all the internal information
+      (`__meta__`, `__errors__` etc.)
+
+      _See:_ `Vela.empty!/1`.
+      """
       @spec empty!(Vela.t()) :: Vela.t()
       def empty!(%@me{} = vela),
         do: Vela.map(vela, fn {serie, _} -> {serie, []} end)
 
-      @doc false
+      @doc """
+      Merges two `Vela`s, using `resolver/3` given as the third argument in a case of ambiguity.
+
+      _See:_ `Vela.merge/3`.
+      """
       @spec merge(Vela.t(), Vela.t(), (Vela.serie(), Vela.value(), Vela.value() -> Vela.value())) ::
               Vela.t()
       def merge(%@me{} = v1, %@me{} = v2, resolver) do
@@ -279,6 +304,17 @@ defmodule Vela do
       end
 
       @impl Vela
+      @doc """
+      Implementation of `c:Vela.average/2`.
+
+      Returns a slice of all series as `keyword()` in format `{Vela.serie(), Vela.value()}`,
+      when the `value` is a calculated average of all serie values.
+
+      The second parameter might be either a function of arity `1`, accepting a serie (a list of values),
+      or a module, exporting `average/1` function.
+
+      The result is similar to what `slice/1` returns, but with average values.
+      """
       def average(%@me{} = vela, averager) do
         for {serie, values} <- vela do
           value =
@@ -294,14 +330,29 @@ defmodule Vela do
       def average(_not_wellformed_vela, _averager), do: nil
 
       @impl Vela
+      @doc """
+      Implementation of `c:Vela.purge/2`.
+
+      Purges values which are not passing `validator` given as a second parameter.
+      """
       def purge(%@me{} = vela, validator \\ nil),
         do: Vela.purge(vela, validator)
 
       @impl Vela
+      @doc """
+      Implementation of `c:Vela.delta/2`.
+
+      Delegates to `Vela.δ/2`.
+      """
       def delta(%@me{} = vela, comparator \\ nil),
         do: Vela.δ(vela, comparator)
 
       @impl Vela
+      @doc """
+      Implementation of `c:Vela.equal?/2`.
+
+      Delegates to `Vela.equal?/2`.
+      """
       def equal?(%@me{} = v1, %@me{} = v2),
         do: Vela.equal?(v1, v2)
     end
@@ -485,7 +536,12 @@ defmodule Vela do
     do: put_in(vela, [serie], value)
 
   @spec equal?(v1 :: t(), v2 :: t()) :: boolean()
-  @doc false
+  @doc """
+  Returns `true` if velas given as arguments are of the same type _and_
+  series values equal for each serie.
+
+  This function does not check internal state, only the values.
+  """
   @doc since: "0.9.2"
   def equal?(%type{} = v1, %type{} = v2) do
     [v1, v2]
@@ -499,14 +555,15 @@ defmodule Vela do
   @spec empty?(Vela.t()) :: boolean()
   def empty?(%type{} = vela), do: type.empty?(vela)
 
-  @doc "Empties the `Vela` given."
+  @doc "Empties the values for all series of `Vela` given."
   @spec empty!(Vela.t()) :: Vela.t()
   def empty!(%type{} = vela), do: type.empty!(vela)
 
   @doc """
   Merges two `Vela`s given using `resolver/3` function.
 
-  This function does not allow merging metas, the first argument wins.
+  This function does not allow merging states, the first argument wins. To update state,
+  use `update_state/2`.
   """
   @spec merge(Vela.t(), Vela.t(), (Vela.serie(), Vela.value(), Vela.value() -> Vela.value())) ::
           Vela.t()

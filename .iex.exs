@@ -37,11 +37,3 @@ IEx.configure(
     |> IO.chardata_to_string()
 )
 
-alias Kantox.{Rate, Points}
-
-defmodule G do
-  def rs(rate \\ 1.2345), do: RatesBlender.Factory.rate(:string, value: rate)
-  def r(rate \\ 1.2345), do: RatesBlender.Factory.rate(:object, value: rate)
-  def spam_dkk(),
-    do: :string |> RatesBlender.Factory.rates(value: 1.05) |> Enum.each(&Broadway.test_messages(RatesBlender.Broadway, [&1]))
-end
