@@ -14,6 +14,7 @@ end
 
 ## Changelog
 
+- **`1.0.0`** — cleaned up the code, introduced interfaces, example as docs
 - **`0.17.0`** — type `VelaImpl.slice()` + many docs improvements
 - **`0.16.1`** — `Vela.merge/3`
 - **`0.16.0`** — `Vela.empty?/1`, `Vela.empty!/1` and some performance improvements in `Vela.equal?/2`

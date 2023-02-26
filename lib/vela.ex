@@ -109,6 +109,10 @@ defmodule Vela do
           optional(serie()) => [value()]
         }
 
+  @typedoc "Configuration options used by the outmost world"
+  @type exposed_option ::
+          :sorter | :compare_by | :comparator | :corrector | :threshold | :validator
+
   @typedoc "Options allowed in series configuration"
   @type option ::
           {:limit, non_neg_integer()}
@@ -124,6 +128,34 @@ defmodule Vela do
 
   @typedoc "Series configuration"
   @type options :: [option()]
+
+  @doc """
+  Returns series defined by this `Vela` as a list of atoms.
+
+  _Example:_
+
+      iex> defmodule V do
+      ...>   use Vela, a: [], b: [], c: []
+      ...> end
+      ...> V.series()
+      [:a, :b, :c]
+  """
+  @callback series :: [serie()]
+
+  @doc """
+  Returns configuration needed to proceed with the interface `Vela` exposes.
+
+  _Example:_
+
+      iex> defmodule VC do
+      ...>   use Vela, a: [validator: VC], b: [], c: []
+      ...>   @behaviour Vela.Validator
+      ...>   @impl Vela.Validator
+      ...>   def valid?(:a, value), do: not is_nil(value)
+      ...> end
+      ...> VC.config(:a, :comparator, struct(VC, []))
+  """
+  @callback config(Vela.serie(), key :: exposed_option(), vela :: Vela.t()) :: Vela.option()
 
   @doc """
   Returns a keyword with series as keys and the hottest value as a value
@@ -171,8 +203,24 @@ defmodule Vela do
               {atom(), {value(), value()}}
             ]
 
+  @doc "Checks if `Vela` given as an input is empty"
+  @callback empty?(vela :: t()) :: boolean()
+
+  @doc "Empties series in `Vela` given as an input, meta stays untouched."
+  @callback empty!(vela :: t()) :: t()
+
+  @doc """
+  Merges two `Vela`s, using `resolver/3` given as the third argument in a case of ambiguity.
+
+  _Used by:_ `Vela.merge/3`.
+  """
+  @callback merge(Vela.t(), Vela.t(), (Vela.serie(), Vela.value(), Vela.value() -> Vela.value())) ::
+              Vela.t()
+
   @doc "Checks two velas given as an input for equality"
   @callback equal?(vela1 :: t(), vela2 :: t()) :: boolean()
+
+  @optional_callbacks [slice: 1, average: 2, purge: 2, delta: 2, equal?: 2]
 
   use Boundary, exports: [Access, AccessError, Stubs, Macros, Validator]
 
@@ -184,19 +232,20 @@ defmodule Vela do
     quote generated: true, location: :keep do
       @me unquote(module) || __MODULE__
 
-      @compile {:inline, series: 0, config: 0, config: 1, config: 2}
+      @compile {:inline, series: 0, config: 3}
       @after_compile {Vela, :implement_enumerable}
 
       import Vela.Macros
 
       opts = unquote(opts) || @__opts__
+      {globals, opts} = Keyword.pop(opts, :__globals__, [])
 
       do_typedef(unquote(typedef), opts)
 
       {meta, opts} = Keyword.pop(opts, :__meta__, [])
       @meta Keyword.put_new(meta, :state, [])
 
-      @config use_config(opts)
+      @config use_config(opts, globals)
 
       @fields Keyword.keys(opts)
       @field_count Enum.count(@fields)
@@ -213,36 +262,26 @@ defmodule Vela do
         | Enum.zip(@fields_ordered, Stream.cycle([[]]))
       ]
 
-      @doc "Returns the initial state of `#{@me}`, custom options etc"
+      @doc "Returns the initial state of `#{inspect(@me)}`, custom options etc"
       @spec state(Vela.t()) :: Vela.state()
-      def state(%@me{__meta__: meta}), do: get_in(meta, [:state])
+      def state(%@me{__meta__: meta} = vela), do: get_in(meta, [:state])
 
       @doc false
       @spec update_meta(Vela.t(), [atom()], (any() -> any())) :: Vela.t()
       def update_meta(%@me{__meta__: meta} = vela, path, fun) when is_function(fun, 1),
         do: %@me{__meta__: update_in(meta, path, fun)}
 
-      @doc "Updates the internal state of `#{@me}`"
+      @doc "Updates the internal state of `#{inspect(@me)}`"
       @spec update_state(Vela.t(), (Vela.state() -> Vela.state())) :: Vela.t()
       def update_state(%@me{} = vela, fun) when is_function(fun, 1),
         do: update_meta(vela, [:state], fun)
 
-      @doc "Returns the list of series declared on `#{@me}`"
-      @spec series :: [Vela.serie()]
-      def series, do: @fields_ordered
-
-      @doc "Returns the config `#{@me}` was declared with"
-      @spec config :: [{atom(), Vela.options()}]
-      def config, do: @config
+      @doc "Returns the config `#{inspect(@me)}` was declared with"
+      @spec vela_config :: [{atom(), Vela.options()}]
+      def vela_config, do: @config
 
       @doc false
-      @spec config(Vela.serie()) :: Vela.options()
-      def config(serie), do: @config[serie]
-
-      @doc false
-      @spec config(Vela.serie(), key :: atom(), default :: any()) :: Vela.option()
-      def config(serie, key, default \\ nil)
-
+      @impl Vela
       def config(serie, key, %@me{__meta__: meta}) do
         get_in(meta, [serie, key]) ||
           Keyword.get_lazy(meta, key, fn ->
@@ -256,6 +295,10 @@ defmodule Vela do
 
       use Vela.Access, @config
       @behaviour Vela
+
+      @doc "Returns the list of series declared on `#{inspect(@me)}`"
+      @impl Vela
+      def series, do: @fields_ordered
 
       @impl Vela
       @doc """
@@ -273,7 +316,7 @@ defmodule Vela do
 
       _See:_ `Vela.empty?/1`.
       """
-      @spec empty?(Vela.t()) :: boolean()
+      @impl Vela
       def empty?(%@me{} = vela),
         do: Enum.all?(vela, &match?({_, []}, &1))
 
@@ -283,7 +326,7 @@ defmodule Vela do
 
       _See:_ `Vela.empty!/1`.
       """
-      @spec empty!(Vela.t()) :: Vela.t()
+      @impl Vela
       def empty!(%@me{} = vela),
         do: Vela.map(vela, fn {serie, _} -> {serie, []} end)
 
@@ -292,8 +335,7 @@ defmodule Vela do
 
       _See:_ `Vela.merge/3`.
       """
-      @spec merge(Vela.t(), Vela.t(), (Vela.serie(), Vela.value(), Vela.value() -> Vela.value())) ::
-              Vela.t()
+      @impl Vela
       def merge(%@me{} = v1, %@me{} = v2, resolver) do
         kvs =
           Enum.zip_with(v1, v2, fn {serie, v1}, {serie, v2} ->
@@ -418,15 +460,32 @@ defmodule Vela do
   def implement_enumerable(%Macro.Env{module: module}, bytecode),
     do: do_implement_enumerable(module)
 
-  @spec map(vela :: t(), (kv() -> kv())) :: t()
+  @spec map(
+          vela :: t(),
+          (kv() -> value())
+          | (serie(), value() -> value())
+          | ({serie(), value()} -> {serie(), value()})
+        ) :: t()
   @doc """
   Maps the series using `fun` and returns the new `Vela` instance with series mapped
   """
-  def map(%mod{} = vela, fun) do
+  def map(vela, fun) when is_function(fun, 2), do: map(vela, fn {k, v} -> fun.(k, v) end)
+
+  def map(%_mod{} = vela, fun) when is_function(fun, 1) do
     mapped =
-      vela
-      |> Map.take(mod.series())
-      |> Enum.map(fun)
+      Enum.map(vela, fn {k, v} ->
+        case fun.({k, v}) do
+          {^k, v} ->
+            {k, v}
+
+          {k, v} ->
+            # Logger.warning("Changing serie during mapping is deprecated for #{inspect({k, v})}")
+            {k, v}
+
+          v ->
+            {k, v}
+        end
+      end)
 
     struct(vela, mapped)
   end
@@ -568,6 +627,27 @@ defmodule Vela do
   @spec merge(Vela.t(), Vela.t(), (Vela.serie(), Vela.value(), Vela.value() -> Vela.value())) ::
           Vela.t()
   def merge(%type{} = v1, %type{} = v2, resolver), do: type.merge(v1, v2, resolver)
+
+  @doc """
+  Slices the `Vela` given as a first agrument, returning the keyword with series and _topmost_
+  value as a value.
+
+  The second argument might be:
+
+  - `{:average, averager}` to return an averaged value, assuming `c:Vela.average/2` callback is defined,
+  - `:slice` to return the sliced value in the list of values, assuming `c:Vela.slice/1` is defined,
+  - `({serie, values} -> value)` function to perform slicing ad-hoc
+  """
+  @spec slice(
+          Vela.t(),
+          :slice
+          | {:average, ([value()] -> value()) | module()}
+          | ({Vela.serie(), Vela.value()} -> Vela.value())
+        ) :: [{Vela.serie(), Vela.value()}]
+  def slice(vela, slicer \\ :slice)
+  def slice(%type{} = vela, :slice), do: type.slice(vela)
+  def slice(%type{} = vela, {:average, averager}), do: type.average(vela, averager)
+  def slice(%_type{} = vela, fun), do: Enum.map(vela, fun)
 
   @spec do_equal?(kw1 :: [Vela.kv()], kw2 :: [Vela.kv()]) :: boolean()
   defp do_equal?([], []), do: true

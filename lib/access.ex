@@ -34,7 +34,10 @@ defmodule Vela.Access do
                 if Vela.validator!(data, unquote(key)).(unquote(key), update_value) do
                   {true, update_value}
                 else
-                  case type.config(unquote(key))[:corrector].(data, unquote(key), update_value) do
+                  corrector = get_in(type.vela_config(), [unquote(key), :corrector])
+
+                  case is_function(corrector, 3) and corrector.(data, unquote(key), update_value) do
+                    false -> {false, update_value}
                     {:ok, corrected_value} -> {true, corrected_value}
                     :error -> {false, update_value}
                   end

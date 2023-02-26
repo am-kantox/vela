@@ -9,23 +9,29 @@ defmodule Vela.Macros do
   def make_arity_2(f) when is_function(f, 2),
     do: f
 
-  defmacro use_config(opts) do
+  defmacro use_config(opts, globals) do
     quote do
+      globals = unquote(globals)
+
       Enum.map(unquote(opts), fn {serie, vela} ->
         vela =
           vela
-          |> Keyword.put_new(:sorter, &Stubs.sort/2)
-          |> Keyword.put_new(:compare_by, &Stubs.itself/1)
-          |> Keyword.put_new(:comparator, &Stubs.compare/2)
-          |> Keyword.put_new(:corrector, &Stubs.correct/3)
-          |> Keyword.put_new(:threshold, nil)
-          |> Keyword.update(:validator, &Stubs.validate/1, fn existing ->
-            case existing do
-              fun when is_function(fun, 1) or is_function(fun, 2) -> fun
-              m when is_atom(m) -> &m.valid?/2
-              other -> raise Vela.AccessError, field: :validator
+          |> Keyword.put_new(:sorter, Keyword.get(globals, :sorter, &Stubs.sort/2))
+          |> Keyword.put_new(:compare_by, Keyword.get(globals, :compare_by, &Stubs.itself/1))
+          |> Keyword.put_new(:comparator, Keyword.get(globals, :comparator, &Stubs.compare/2))
+          |> Keyword.put_new(:corrector, Keyword.get(globals, :corrector, &Stubs.correct/3))
+          |> Keyword.put_new(:threshold, Keyword.get(globals, :threshold, nil))
+          |> Keyword.update(
+            :validator,
+            Keyword.get(globals, :validator, &Stubs.validate/1),
+            fn existing ->
+              case existing do
+                fun when is_function(fun, 1) or is_function(fun, 2) -> fun
+                m when is_atom(m) -> &m.valid?/2
+                other -> raise Vela.AccessError, field: :validator
+              end
             end
-          end)
+          )
 
         {serie, vela}
       end)
@@ -77,8 +83,11 @@ defmodule Vela.Macros do
   defmacro do_typedef(nil, opts) do
     quote bind_quoted: [opts: opts] do
       types = for {k, v} <- opts, do: {k, v[:type]}
+      @typedoc "The type of this particular `Vela` implementation"
       @type t :: unquote(use_types(types))
+      @typedoc "The possibly type of members of the result of call to `Vela.slice/1`"
       @type serie_slice :: unquote(slice_types(types))
+      @typedoc "The result of call to `Vela.slice/1`"
       @type slice :: [serie_slice()]
     end
   end
@@ -86,11 +95,14 @@ defmodule Vela.Macros do
   defmacro do_typedef(typedef, opts) do
     [
       quote do
+        @typedoc "The type of this particular `Vela` implementation"
         @type t :: unquote(typedef)
       end,
       quote bind_quoted: [opts: opts] do
         types = for {k, v} <- opts, do: {k, v[:type]}
+        @typedoc "The possibly type of members of the result of call to `Vela.slice/1`"
         @type serie_slice :: unquote(slice_types(types))
+        @typedoc "The result of call to `Vela.slice/1`"
         @type slice :: [serie_slice()]
       end
     ]

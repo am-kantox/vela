@@ -2,7 +2,7 @@ defmodule Vela.MixProject do
   use Mix.Project
 
   @app :vela
-  @version "0.17.0"
+  @version "1.0.0"
 
   def project do
     [
@@ -22,7 +22,7 @@ defmodule Vela.MixProject do
       releases: [],
       dialyzer: [
         plt_file: {:no_warn, ".dialyzer/dialyzer.plt"},
-        plt_add_deps: :transitive,
+        plt_add_deps: :app_tree,
         list_unused_filters: true,
         ignore_warnings: ".dialyzer/ignore.exs"
       ]
@@ -83,7 +83,9 @@ defmodule Vela.MixProject do
       source_url: "https://github.com/am-kantox/#{@app}",
       assets: "stuff/images",
       extras: ~w[README.md stuff/lifetime.md],
-      groups_for_modules: []
+      groups_for_modules: [
+        Examples: [WeatherForecast]
+      ]
     ]
   end
 
@@ -91,7 +93,7 @@ defmodule Vela.MixProject do
   defp compilers(_), do: Mix.compilers()
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(:ci), do: ["lib", "test/support"]
-  defp elixirc_paths(:dev), do: ["lib", "test/support"]
+  defp elixirc_paths(:ci), do: ["lib", "examples", "test/support"]
+  defp elixirc_paths(:dev), do: ["lib", "examples", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 end
