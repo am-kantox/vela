@@ -7,6 +7,7 @@ defmodule Test.Vela.Struct do
   alias Vela.Validator
 
   use Vela,
+    __meta__: %{},
     series1: [limit: 3, validator: Me, errors: 1],
     series2: [limit: 2, validator: &Me.valid_2?/2],
     series3: [limit: 2, sorter: &Me.sort/2]

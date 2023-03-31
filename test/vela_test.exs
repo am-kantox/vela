@@ -10,7 +10,7 @@ defmodule VelaTest do
   test "state/1, update_state/2", %{data: data} do
     assert Struct.state(data) == []
 
-    assert %Struct{__meta__: [state: [foo: :bar]]} =
+    assert %Struct{__meta__: %{state: [foo: :bar]}} =
              Struct.update_state(data, fn state -> Keyword.put(state, :foo, :bar) end)
   end
 

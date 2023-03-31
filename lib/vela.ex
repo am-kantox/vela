@@ -237,23 +237,27 @@ defmodule Vela do
 
       import Vela.Macros
 
-      opts = unquote(opts) || @__opts__
-      {globals, opts} = Keyword.pop(opts, :__globals__, [])
+      {series, config} =
+        Enum.split_with(unquote(opts) || @__opts__, fn {k, v} ->
+          Keyword.keyword?(v) and not (k |> to_string() |> String.starts_with?("__"))
+        end)
 
-      do_typedef(unquote(typedef), opts)
+      meta = Keyword.get(config, :__meta__, [])
+      globals = Keyword.get(config, :__globals__, [])
 
-      {meta, opts} = Keyword.pop(opts, :__meta__, [])
-      @meta Keyword.put_new(meta, :state, [])
+      do_typedef(unquote(typedef), series)
 
-      @config use_config(opts, globals)
+      @meta update_in(meta, [:state], &(&1 || []))
 
-      @fields Keyword.keys(opts)
+      @config use_config(series, globals)
+
+      @fields Keyword.keys(series)
       @field_count Enum.count(@fields)
       fields_index = Enum.with_index(@fields)
 
       @fields_ordered Enum.sort(
                         @fields,
-                        Keyword.get(@meta, :order_by, &(fields_index[&1] <= fields_index[&2]))
+                        get_in(@meta, [:order_by]) || (&(fields_index[&1] <= fields_index[&2]))
                       )
 
       defstruct [
@@ -284,11 +288,10 @@ defmodule Vela do
       @impl Vela
       def config(serie, key, %@me{__meta__: meta}) do
         get_in(meta, [serie, key]) ||
-          Keyword.get_lazy(meta, key, fn ->
-            get_in(meta, [:state, serie, key]) ||
-              get_in(meta, [:state, key]) ||
-              @config[serie][key]
-          end)
+          get_in(meta, [key]) ||
+          get_in(meta, [:state, serie, key]) ||
+          get_in(meta, [:state, key]) ||
+          @config[serie][key]
       end
 
       def config(serie, key, default), do: Keyword.get(@config[serie], key, default)
@@ -402,11 +405,18 @@ defmodule Vela do
 
   @doc false
   defmacro __using__(opts) when is_list(opts) do
-    typedefs = for {k, v} <- opts, do: {k, v[:type]}
-    typedef = use_types(typedefs)
-    opts = for {serie, desc} <- opts, do: {serie, Keyword.delete(desc, :type)}
+    {series, config} =
+      Enum.split_with(opts, fn {k, v} ->
+        Keyword.keyword?(v) and
+          not (k |> to_string() |> String.starts_with?("__"))
+      end)
 
-    do_def_using(__CALLER__.module, opts, typedef)
+    typedefs = for {k, v} <- series, do: {k, v[:type]}
+    typedef = use_types(typedefs)
+
+    series = for {serie, desc} <- series, do: {serie, Keyword.delete(desc, :type)}
+
+    do_def_using(__CALLER__.module, config ++ series, typedef)
   end
 
   defmacro __using__(opts) do
