@@ -273,7 +273,7 @@ defmodule Vela do
       @doc false
       @spec update_meta(Vela.t(), [atom()], (any() -> any())) :: Vela.t()
       def update_meta(%@me{__meta__: meta} = vela, path, fun) when is_function(fun, 1),
-        do: %@me{__meta__: update_in(meta, path, fun)}
+        do: %@me{vela | __meta__: update_in(meta, path, fun)}
 
       @doc "Updates the internal state of `#{inspect(@me)}`"
       @spec update_state(Vela.t(), (Vela.state() -> Vela.state())) :: Vela.t()

@@ -14,6 +14,7 @@ end
 
 ## Changelog
 
+- **`1.0.2`** — fixed `update_meta/3`
 - **`1.0.1`** — fixed different `Access` implementations for `__meta__: ` argument to `use Vela`
 - **`1.0.0`** — cleaned up the code, introduced interfaces, example as docs
 - **`0.17.0`** — type `VelaImpl.slice()` + many docs improvements
