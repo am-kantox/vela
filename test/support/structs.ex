@@ -1,8 +1,6 @@
 defmodule Test.Vela.Struct do
   @moduledoc false
 
-  use Boundary, deps: [Vela]
-
   alias Test.Vela.Struct, as: Me
   alias Vela.Validator
 
@@ -25,8 +23,6 @@ end
 defmodule Test.Vela.Struct2Checkers do
   @moduledoc false
 
-  use Boundary
-
   def good_integer(int) when is_integer(int), do: true
   def good_integer(_), do: false
 
@@ -48,7 +44,6 @@ end
 defmodule Nested.Module.T do
   @moduledoc false
 
-  use Boundary, deps: [Vela]
   @type int :: integer()
 
   @vela [foo: [type: {Nested.Module.T, :int}]]
@@ -57,8 +52,6 @@ end
 
 defmodule Test.Vela.Struct2 do
   @moduledoc false
-
-  use Boundary, deps: [Vela, Test.Vela.Struct2Checkers]
 
   import Test.Vela.Struct2Checkers
 

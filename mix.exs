@@ -2,7 +2,7 @@ defmodule Vela.MixProject do
   use Mix.Project
 
   @app :vela
-  @version "1.0.2"
+  @version "1.1.0"
 
   def project do
     [
@@ -36,7 +36,6 @@ defmodule Vela.MixProject do
 
   defp deps do
     [
-      {:boundary, "~> 0.4", runtime: false},
       # dev / test
       {:credo, "~> 1.0", only: [:dev, :ci]},
       {:dialyxir, "~> 1.0", only: [:dev, :test, :ci], runtime: false},
@@ -89,7 +88,6 @@ defmodule Vela.MixProject do
     ]
   end
 
-  defp compilers(:dev), do: [:boundary | Mix.compilers()]
   defp compilers(_), do: Mix.compilers()
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]

@@ -222,8 +222,6 @@ defmodule Vela do
 
   @optional_callbacks [slice: 1, average: 2, purge: 2, delta: 2, equal?: 2]
 
-  use Boundary, exports: [Access, AccessError, Stubs, Macros, Validator]
-
   alias Vela.Stubs
   import Vela.Macros
 

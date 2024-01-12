@@ -25,8 +25,6 @@ defmodule WeatherForecast do
   ```
   """
 
-  use Boundary, deps: [Vela]
-
   alias WeatherForecast, as: Me
 
   use Vela,

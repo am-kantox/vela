@@ -9,3 +9,5 @@ kantox_elixir_commons-*.tar
 /.elixir_ls/
 /.dialyzer/*.plt*
 .mix_tasks
+/.elixir-tools/
+/.tool-versions
